@@ -1,3 +1,6 @@
 [submodule "submodules/python-OBD"]
 	path = submodules/python-OBD
 	url = https://github.com/brendan-w/python-OBD.git
+[submodule "submodules/ELM327-emulator"]
+	path = submodules/ELM327-emulator
+	url = https://github.com/Ircama/ELM327-emulator.git
