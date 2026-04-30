@@ -1,0 +1,3 @@
+[submodule "submodules/python-OBD"]
+	path = submodules/python-OBD
+	url = https://github.com/brendan-w/python-OBD.git
