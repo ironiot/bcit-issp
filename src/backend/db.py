@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import (
     Column,
     DateTime,
@@ -78,8 +80,14 @@ class Error(Base):
     live_data_slow = relationship("LiveDataSlow", back_populates="errors")
 
 
-def main():
-    engine = create_engine("postgresql+psycopg://bcit-issp@localhost/ironiot")
+URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
+
+
+def main() -> None:
+    if not (url := os.getenv(URL_ENV_VAR)):
+        raise ValueError(f"Missing env var {URL_ENV_VAR}")
+
+    engine = create_engine(f"postgresql+psycopg://{url}")
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
