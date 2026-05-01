@@ -20,8 +20,8 @@ Base = declarative_base()
 
 
 # Poll every 1s
-class LiveDataFast(Base):
-    __tablename__ = "live_data_fast"
+class DataFast(Base):
+    __tablename__ = "data_fast"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
@@ -38,12 +38,12 @@ class LiveDataFast(Base):
     o2_b2s1 = Column(Float)
     timing_advance = Column(Float)
 
-    errors = relationship("Error", back_populates="live_data_fast")
+    errors = relationship("Error", back_populates="data_fast")
 
 
 # Poll every 10s
-class LiveDataSlow(Base):
-    __tablename__ = "live_data_slow"
+class DataSlow(Base):
+    __tablename__ = "data_slow"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
@@ -61,7 +61,7 @@ class LiveDataSlow(Base):
     o2_b2s2 = Column(Float)
     distance_w_mil = Column(Float)
 
-    errors = relationship("Error", back_populates="live_data_slow")
+    errors = relationship("Error", back_populates="data_slow")
 
 
 # Poll every 10s; only insert if a new error is detected (not every time the same error is detected)
@@ -70,14 +70,14 @@ class Error(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     # when inserting, need to find the closest live data entry to associate with this error
-    live_data_fast_id = Column(Integer, ForeignKey("live_data_fast.id"))
-    live_data_slow_id = Column(Integer, ForeignKey("live_data_slow.id"))
+    data_fast_id = Column(Integer, ForeignKey("data_fast.id"))
+    data_slow_id = Column(Integer, ForeignKey("data_slow.id"))
 
     error_code = Column(String(5), nullable=False, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-    live_data_fast = relationship("LiveDataFast", back_populates="errors")
-    live_data_slow = relationship("LiveDataSlow", back_populates="errors")
+    data_fast = relationship("LiveDataFast", back_populates="errors")
+    data_slow = relationship("LiveDataSlow", back_populates="errors")
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
