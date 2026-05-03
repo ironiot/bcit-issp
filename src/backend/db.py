@@ -76,8 +76,8 @@ class Error(Base):
     error_code = Column(String(5), nullable=False, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-    data_fast = relationship("LiveDataFast", back_populates="errors")
-    data_slow = relationship("LiveDataSlow", back_populates="errors")
+    data_fast = relationship("DataFast", back_populates="errors")
+    data_slow = relationship("DataSlow", back_populates="errors")
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
