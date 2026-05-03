@@ -1,0 +1,24 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.2.9 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.2.9">
+  <diagram name="Page-1" id="_n7miBmNWP51LeUqQRaZ">
+    <mxGraphModel dx="793" dy="417" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="leLEIDJ5-Bu6E4YAFy-7-1" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="OBD" vertex="1">
+          <mxGeometry height="390" width="160" x="170" y="270" as="geometry">
+            <mxRectangle height="30" width="70" x="170" y="270" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leLEIDJ5-Bu6E4YAFy-7-2" parent="leLEIDJ5-Bu6E4YAFy-7-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ portstr: String&lt;div&gt;+ baudrate: Integer&lt;/div&gt;&lt;div&gt;+ protocol:string&lt;/div&gt;&lt;div&gt;+ fast: boolean&lt;/div&gt;&lt;div&gt;+ timeout: float&lt;/div&gt;&lt;div&gt;+ check_voltage: boolean&lt;/div&gt;&lt;div&gt;+ start_low_power: boolean&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="114" width="160" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leLEIDJ5-Bu6E4YAFy-7-3" parent="leLEIDJ5-Bu6E4YAFy-7-1" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" value="" vertex="1">
+          <mxGeometry height="8" width="160" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="leLEIDJ5-Bu6E4YAFy-7-4" parent="leLEIDJ5-Bu6E4YAFy-7-1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ close()&lt;div&gt;+ status()&lt;/div&gt;&lt;div&gt;+ low_power()&lt;br&gt;+ normal_power()&lt;br&gt;&lt;div&gt;&lt;div&gt;&lt;div&gt;+ protocol_names(): List&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;+ protocol_id(): Integer&lt;br&gt;+ port_name(): String&lt;/div&gt;&lt;div&gt;+ is_connected(): Boolean&lt;/div&gt;&lt;div&gt;+ print_commands()&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="242" width="160" y="148" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
