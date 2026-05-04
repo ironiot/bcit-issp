@@ -74,6 +74,20 @@
         <mxCell id="qF01jbYk3R8HKFrTQA8B-17" parent="qF01jbYk3R8HKFrTQA8B-14" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="12" width="250" y="48" as="geometry" />
         </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-18" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="StatusTest" vertex="1">
+          <mxGeometry height="60" width="250" x="480" y="660" as="geometry">
+            <mxRectangle height="30" width="70" x="170" y="270" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-19" parent="qF01jbYk3R8HKFrTQA8B-18" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="14" width="250" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-20" parent="qF01jbYk3R8HKFrTQA8B-18" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" value="" vertex="1">
+          <mxGeometry height="8" width="250" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-21" parent="qF01jbYk3R8HKFrTQA8B-18" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="12" width="250" y="48" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
