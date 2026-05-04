@@ -25,6 +25,18 @@ class Vehicle(Base):
 
     metrics = relationship("Metrics", back_populates="vehicle")
     dtcs = relationship("DTC", back_populates="vehicle")
+    drive_cycles = relationship("DriveCycle", back_populates="vehicle")
+
+
+class DriveCycle(Base):
+    __tablename__ = "drive_cycle"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vin = Column(String(17), ForeignKey("vehicle.vin"), nullable=False, index=True)
+    start_time = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    end_time = Column(DateTime(timezone=True), index=True)
+
+    vehicle = relationship("Vehicle", uselist=False, back_populates="drive_cycles")
 
 
 class Metrics(Base):
