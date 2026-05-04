@@ -15,11 +15,26 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
+class Vehicle(Base):
+    __tablename__ = "vehicle"
+
+    vin = Column(String(17), primary_key=True)
+    calibration_id = Column(String(20))
+    cvn = Column(String(20))
+    ecu_name = Column(String(20))
+
+    metrics = relationship("Metrics", back_populates="vehicle")
+    dtcs = relationship("DTC", back_populates="vehicle")
+
+
 class Metrics(Base):
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    vin = Column(String(17), ForeignKey("vehicle.vin"), nullable=False, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    vehicle = relationship("Vehicle", uselist=False, back_populates="metrics")
 
     # These are the PIDs that AI told me are important and almost universally supported.
     # Should be revised later, just a POC for now.
@@ -69,6 +84,7 @@ class DTC(Base):
     __tablename__ = "dtc"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    vin = Column(String(17), ForeignKey("vehicle.vin"), nullable=False, index=True)
     code = Column(String(5), nullable=False, index=True)
     cleared_at = Column(DateTime(timezone=True))
     freeze_frame_id = Column(
@@ -79,6 +95,7 @@ class DTC(Base):
     )
 
     freeze_frame = relationship("FreezeFrame", uselist=False, back_populates="dtcs")
+    vehicle = relationship("Vehicle", uselist=False, back_populates="dtcs")
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
