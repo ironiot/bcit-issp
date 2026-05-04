@@ -9,15 +9,34 @@ OBD_URL = "/dev/pts/1"  # PTY printed by `python3 -m elm`
 
 POLL_HZ = 5
 DTC_PERIOD = 30.0  # seconds between DTC scans when --dtcs is on
-PIDS = ["RPM", "SPEED", "COOLANT_TEMP", "THROTTLE_POS", "INTAKE_TEMP", "MAF"]
+
 INFO_PIDS = ["VIN", "CALIBRATION_ID", "CVN", "ECU_NAME"]
-FREEZE_PIDS = [
-    "DTC_RPM",
-    "DTC_SPEED",
-    "DTC_COOLANT_TEMP",
-    "DTC_THROTTLE_POS",
-    "DTC_ENGINE_LOAD",
+PIDS = [
+    "RPM",
+    "SPEED",
+    "ENGINE_LOAD",
+    "THROTTLE_POS",
+    "MAF",
+    "MAP",
+    "SHORT_FUEL_TRIM_1",
+    "SHORT_FUEL_TRIM_2",
+    "LONG_FUEL_TRIM_1",
+    "LONG_FUEL_TRIM_2",
+    "O2_B1S1",
+    "O2_B2S1",
+    "O2_B1S2",
+    "O2_B2S2",
+    "TIMING_ADVANCE",
+    "RUN_TIME",
+    "COOLANT_TEMP",
+    "INTAKE_TEMP",
+    "AMBIENT_AIR_TEMP",
+    "CONTROL_MODULE_VOLTAGE",
+    "FUEL_LEVEL",
+    "BAROMETRIC_PRESSURE",
+    "DISTANCE_W_MIL",
 ]
+FREEZE_PIDS = [f"DTC_{p}" for p in PIDS]
 VEHICLE = "car1"
 
 log = logging.getLogger("collector")

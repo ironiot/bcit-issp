@@ -15,7 +15,7 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
-class VehicleMetrics(Base):
+class Metrics(Base):
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -49,13 +49,13 @@ class VehicleMetrics(Base):
     distance_w_mil = Column(Float)
 
 
-class LiveSample(VehicleMetrics):
+class LiveSample(Metrics):
     # collected every 5s or so
 
     __tablename__ = "live_sample"
 
 
-class FreezeFrame(VehicleMetrics):
+class FreezeFrame(Metrics):
     # collected when there's a new DTC
 
     __tablename__ = "freeze_frame"
