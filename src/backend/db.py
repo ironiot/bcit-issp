@@ -9,7 +9,7 @@ from sqlalchemy import (
     String,
     create_engine,
 )
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, declared_attr, relationship
 from sqlalchemy.sql import func
 
 Base = declarative_base()
@@ -46,7 +46,9 @@ class Metrics(Base):
     vin = Column(String(17), ForeignKey("vehicle.vin"), nullable=False, index=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
-    vehicle = relationship("Vehicle", uselist=False, back_populates="metrics")
+    @declared_attr
+    def vehicle(cls):
+        return relationship("Vehicle", uselist=False, back_populates="metrics")
 
     # These are the PIDs that AI told me are important and almost universally supported.
     # Should be revised later, just a POC for now.
