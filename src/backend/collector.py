@@ -7,7 +7,7 @@ from obd import OBD, OBDCommand, commands
 
 OBD_URL = "/dev/pts/1"  # PTY printed by `python3 -m elm`
 
-POLL_HZ = 5
+SAMPLE_PERIOD = 1.0
 DTC_PERIOD = 30.0  # seconds between DTC scans when --dtcs is on
 
 INFO_PIDS = ["VIN", "CALIBRATION_ID", "CVN", "ECU_NAME"]
@@ -135,7 +135,7 @@ class Collector:
             samples.append((cmd.name, mag, unit))
         if samples:
             line = "  ".join(f"{n}={v:.2f}{u}" for n, v, u in samples)
-            log.info("sample %s", line)
+            log.info("sample %s\n", line)
 
     def poll_mode_02(self):
         # this is the snapshot of a vehicle at the time of a DTC, same as mode 1 but with DTC_ prefix
@@ -160,7 +160,6 @@ class Collector:
     def run(self):
         # main driver, connects and runs polls at specified frequencies
         self.connect()
-        period = 1.0 / POLL_HZ
         # ticks because we do not ever want to go backwards in time
         next_tick = time.monotonic()
         next_dtc = time.monotonic()
@@ -176,7 +175,7 @@ class Collector:
             except Exception:
                 log.exception("poll failed")
                 time.sleep(1)
-            next_tick += period
+            next_tick += SAMPLE_PERIOD
             sleep = next_tick - time.monotonic()
             if sleep > 0:
                 time.sleep(sleep)
