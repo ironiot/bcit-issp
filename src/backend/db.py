@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, declared_attr, relationship
 from sqlalchemy.sql import func
 
+
 Base = declarative_base()
 
 
