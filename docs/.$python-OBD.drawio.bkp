@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.2.9 Chrome/140.0.7339.249 Electron/38.7.2 Safari/537.36" version="29.2.9">
   <diagram name="Page-1" id="_n7miBmNWP51LeUqQRaZ">
-    <mxGraphModel dx="1665" dy="875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="951" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -129,6 +129,20 @@
         </mxCell>
         <mxCell id="qF01jbYk3R8HKFrTQA8B-33" parent="qF01jbYk3R8HKFrTQA8B-30" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="+ set_protocol(String): Boolean&lt;div&gt;+ manual_protocol(String): Boolean&lt;/div&gt;&lt;div&gt;+ auto_protocol(): Boolean&lt;/div&gt;&lt;div&gt;+ set_baudrate(Integer): Boolean&lt;/div&gt;&lt;div&gt;+ auto_baudrate(): Boolean&lt;/div&gt;&lt;div&gt;+ port_name(): String&lt;/div&gt;&lt;div&gt;+ status(): Object&lt;/div&gt;&lt;div&gt;+ ecus(): List&lt;/div&gt;&lt;div&gt;+ protocol_name(): String&lt;/div&gt;&lt;div&gt;+ protocol_id(): Integer&lt;/div&gt;&lt;div&gt;+ low_power(): Object&lt;/div&gt;&lt;div&gt;+ normal_power(): Object&lt;/div&gt;&lt;div&gt;+ close()&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;+ send_and_parse(String):&amp;nbsp;&amp;nbsp;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="212" width="250" y="138" as="geometry" />
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-38" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" value="ECU_HEADER" vertex="1">
+          <mxGeometry height="60" width="250" x="200" y="790" as="geometry">
+            <mxRectangle height="30" width="70" x="170" y="270" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-39" parent="qF01jbYk3R8HKFrTQA8B-38" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="14" width="250" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-40" parent="qF01jbYk3R8HKFrTQA8B-38" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" value="" vertex="1">
+          <mxGeometry height="8" width="250" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="qF01jbYk3R8HKFrTQA8B-41" parent="qF01jbYk3R8HKFrTQA8B-38" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="12" width="250" y="48" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
