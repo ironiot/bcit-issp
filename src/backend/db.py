@@ -15,16 +15,14 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
-# These are the PIDs that AI told me are important and almost universally supported.
-# Should be revised later, just a POC for now.
-
-
-# Poll every 1s
-class DataFast(Base):
-    __tablename__ = "data_fast"
+class VehicleMetrics(Base):
+    __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    # These are the PIDs that AI told me are important and almost universally supported.
+    # Should be revised later, just a POC for now.
 
     rpm = Column(Float)
     speed = Column(Float)
@@ -34,50 +32,53 @@ class DataFast(Base):
     map = Column(Float)
     short_fuel_trim_1 = Column(Float)
     short_fuel_trim_2 = Column(Float)
-    o2_b1s1 = Column(Float)
-    o2_b2s1 = Column(Float)
-    timing_advance = Column(Float)
-
-    errors = relationship("Error", back_populates="data_fast")
-
-
-# Poll every 10s
-class DataSlow(Base):
-    __tablename__ = "data_slow"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-
-    run_time = Column(Float)
     long_fuel_trim_1 = Column(Float)
     long_fuel_trim_2 = Column(Float)
+    o2_b1s1 = Column(Float)
+    o2_b2s1 = Column(Float)
+    o2_b1s2 = Column(Float)
+    o2_b2s2 = Column(Float)
+    timing_advance = Column(Float)
+    run_time = Column(Float)
     coolant_temp = Column(Float)
     intake_temp = Column(Float)
     ambient_air_temp = Column(Float)
     control_module_voltage = Column(Float)
     fuel_level = Column(Float)
     barometric_pressure = Column(Float)
-    o2_b1s2 = Column(Float)
-    o2_b2s2 = Column(Float)
     distance_w_mil = Column(Float)
 
-    errors = relationship("Error", back_populates="data_slow")
+
+class LiveSample(VehicleMetrics):
+    # collected every 5s or so
+
+    __tablename__ = "live_sample"
 
 
-# Poll every 10s; only insert if a new error is detected (not every time the same error is detected)
-class Error(Base):
-    __tablename__ = "error"
+class FreezeFrame(VehicleMetrics):
+    # collected when there's a new DTC
+
+    __tablename__ = "freeze_frame"
+
+    dtcs = relationship("DTC", back_populates="freeze_frame")
+
+
+class DTC(Base):
+    # error info, there might be multiple of these for each freeze frame
+
+    __tablename__ = "dtc"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    # when inserting, need to find the closest live data entry to associate with this error
-    data_fast_id = Column(Integer, ForeignKey("data_fast.id"))
-    data_slow_id = Column(Integer, ForeignKey("data_slow.id"))
+    code = Column(String(5), nullable=False, index=True)
+    cleared_at = Column(DateTime(timezone=True))
+    freeze_frame_id = Column(
+        Integer,
+        ForeignKey("freeze_frame.id"),
+        nullable=False,
+        index=True,
+    )
 
-    error_code = Column(String(5), nullable=False, index=True)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
-
-    data_fast = relationship("DataFast", back_populates="errors")
-    data_slow = relationship("DataSlow", back_populates="errors")
+    freeze_frame = relationship("FreezeFrame", uselist=False, back_populates="dtcs")
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
