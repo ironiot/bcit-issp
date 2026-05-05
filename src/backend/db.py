@@ -4,7 +4,7 @@ import asyncio
 import os
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -130,7 +130,10 @@ async def main() -> None:
 
     engine = create_async_engine(f"postgresql+asyncpg://{url}")
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # nuke the database
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
+        # create new tables
         await conn.run_sync(Base.metadata.create_all)
 
 
