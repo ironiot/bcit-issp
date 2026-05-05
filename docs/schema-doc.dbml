@@ -1,0 +1,64 @@
+Table vehicle {
+    vin            char(17) [pk]
+    calibration_id char(20)
+    cvn            char(20)
+    ecu_name       char(20)
+}
+
+Table drive_cycle {
+    id         integer [pk]
+    vin        char(17) 
+    start_time timestamp [default: `now()`]
+    end_time   timestamp
+}
+
+Table metrics {
+    id                  integer [pk]
+    vin                 char(17) 
+    _timestamp          timestamp [default: `now()`]
+    rpm                 float
+    speed               float
+    engine_load         float
+    throttle_pos        float
+    _map                float
+    short_fuel_trim_1   float
+    short_fuel_trim_2   float
+    long_fuel_trim_1    float
+    long_fuel_trim_2    float
+    o2_b1s1             float
+    o2_b2s1             float
+    o2_b1s2             float
+    o2_b2s2             float
+    timing_advance      float
+    run_time            float
+    coolant_temp        float
+    intake_temp         float
+    ambient_air_temp    float
+    fuel_level          float
+    barometric_pressure float
+    distance_w_mil      float
+}
+
+Table live_sample {
+    id integer 
+}
+
+Table freeze_frame {
+    id integer 
+}
+
+Table dtc {
+    id              integer [pk]
+    vin             char(17)
+    code            char(5) [not null]
+    freeze_frame_id integer
+    cleared_at      timestamp
+}
+
+Ref: live_sample.id  - metrics.id
+Ref: freeze_frame.id - metrics.id
+Ref: dtc.freeze_frame_id - freeze_frame.id
+Ref: vehicle.vin < drive_cycle.vin [delete: cascade, update: cascade]
+Ref: vehicle.vin < metrics.vin     [delete: cascade, update: cascade]
+Ref: vehicle.vin < dtc.vin         [delete: cascade, update: cascade]
+
