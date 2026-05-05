@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, create_engine
+from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -115,14 +117,15 @@ class Dtc(Base):
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
 
 
-def main() -> None:
+async def main() -> None:
     if not (url := os.getenv(URL_ENV_VAR)):
         raise ValueError(f"Missing env var {URL_ENV_VAR}")
 
-    engine = create_engine(f"postgresql+psycopg://{url}")
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    engine = create_async_engine(f"postgresql+asyncpg://{url}")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

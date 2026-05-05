@@ -1,6 +1,8 @@
-from db import DriveCycle, LiveSample, Vehicle
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from collections.abc import Sequence
+
+from db import DriveCycle, LiveSample, Vehicle, datetime
+from sqlalchemy import RowMapping, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class QueryError(Exception):
@@ -8,30 +10,32 @@ class QueryError(Exception):
 
 
 class QueryHandler:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
-    def get_vehicles(self):
+    async def get_vehicles(self) -> list[Vehicle]:
         """Return all known vehicles."""
 
-        return list(self.session.scalars(select(Vehicle)))
+        result = await self.session.scalars(select(Vehicle))
+        return list(result.all())
 
-    def get_drive_cycles(self, vin: str, limit: int):
+    async def get_drive_cycles(self, vin: str, limit: int) -> list[DriveCycle]:
         """Return drive cycles for a given VIN, ordered by start time descending."""
 
-        return list(
-            self.session.scalars(
-                select(DriveCycle)
-                .where(DriveCycle.vin == vin)
-                .order_by(DriveCycle.start_time.desc())
-                .limit(limit)
-            )
+        result = await self.session.scalars(
+            select(DriveCycle)
+            .where(DriveCycle.vin == vin)
+            .order_by(DriveCycle.start_time.desc())
+            .limit(limit)
         )
+        return list(result.all())
 
-    def get_sample_metrics(self, vin: str, drive_cycle_id: int, fields: list[str]):
+    async def get_sample_metrics(
+        self, vin: str, drive_cycle_id: int, fields: list[str]
+    ) -> Sequence[RowMapping]:
         """Return sample metrics for a given VIN and drive cycle, limited to the specified fields."""
 
-        if not (drive_cycle := self.session.get(DriveCycle, drive_cycle_id)):
+        if not (drive_cycle := await self.session.get(DriveCycle, drive_cycle_id)):
             raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
 
         start_time = drive_cycle.start_time
@@ -50,4 +54,5 @@ class QueryHandler:
         if end_time is not None:
             stmt = stmt.where(LiveSample.timestamp <= end_time)
 
-        return list(self.session.execute(stmt).mappings())
+        result = await self.session.execute(stmt)
+        return list(result.mappings().all())
