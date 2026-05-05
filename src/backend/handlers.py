@@ -50,5 +50,4 @@ class QueryHandler:
         if end_time is not None:
             stmt = stmt.where(LiveSample.timestamp <= end_time)
 
-        # Use execute().mappings() to return dictionaries of the multiple selected columns
         return list(self.session.execute(stmt).mappings())
