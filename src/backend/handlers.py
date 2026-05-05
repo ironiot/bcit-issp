@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from db import DriveCycle, LiveSample, Vehicle, datetime
+from db import DriveCycle, LiveSample, Vehicle
 from sqlalchemy import RowMapping, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

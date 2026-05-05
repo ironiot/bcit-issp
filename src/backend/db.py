@@ -23,7 +23,6 @@ class Vehicle(Base):
     ecu_name: Mapped[str | None] = mapped_column(String(20))
 
     live_samples: Mapped[list[LiveSample]] = relationship(back_populates="vehicle")
-    freeze_frames: Mapped[list[FreezeFrame]] = relationship(back_populates="vehicle")
     dtcs: Mapped[list[Dtc]] = relationship(back_populates="vehicle")
     drive_cycles: Mapped[list[DriveCycle]] = relationship(back_populates="vehicle")
 
@@ -47,10 +46,6 @@ class Metrics(Base):
     __abstract__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
-    timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), index=True
-    )
 
     # These are the PIDs that AI told me are important and almost universally supported.
     # Should be revised later, just a POC for now.
@@ -85,6 +80,13 @@ class LiveSample(Metrics):
 
     __tablename__ = "live_sample"
 
+    vin: Mapped[str] = mapped_column(
+        ForeignKey("vehicle.vin"), nullable=False, index=True
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
     vehicle: Mapped[Vehicle] = relationship(back_populates="live_samples")
 
 
@@ -93,24 +95,29 @@ class FreezeFrame(Metrics):
 
     __tablename__ = "freeze_frame"
 
-    dtcs: Mapped[list[Dtc]] = relationship(back_populates="freeze_frame")
-    vehicle: Mapped[Vehicle] = relationship(back_populates="freeze_frames")
+    dtc_id: Mapped[int] = mapped_column(
+        ForeignKey("dtc.id"), nullable=False, index=True
+    )
+
+    dtc: Mapped[Dtc] = relationship(back_populates="freeze_frame")
 
 
 class Dtc(Base):
-    # error info, there might be multiple of these for each freeze frame
+    # errors
 
     __tablename__ = "dtc"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
-    code: Mapped[str] = mapped_column(String(5), index=True)
-    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    freeze_frame_id: Mapped[int] = mapped_column(
-        ForeignKey("freeze_frame.id"), index=True
+    vin: Mapped[str] = mapped_column(
+        ForeignKey("vehicle.vin"), nullable=False, index=True
     )
+    code: Mapped[str] = mapped_column(String(5), index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    freeze_frame: Mapped[FreezeFrame] = relationship(back_populates="dtcs")
+    freeze_frame: Mapped[FreezeFrame | None] = relationship(back_populates="dtc")
     vehicle: Mapped[Vehicle] = relationship(back_populates="dtcs")
 
 
