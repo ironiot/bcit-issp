@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from datetime import datetime
 
@@ -8,6 +9,10 @@ from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
+from obd_client import DTCPoll, FreezePoll, SamplePoll
+
+log = logging.getLogger("db")
 
 
 class Base(DeclarativeBase):
@@ -119,6 +124,34 @@ class Dtc(Base):
 
     freeze_frame: Mapped[FreezeFrame | None] = relationship(back_populates="dtc")
     vehicle: Mapped[Vehicle] = relationship(back_populates="dtcs")
+
+
+class DB:
+    """Stub persistence layer. REPLACE THESE LATER!!!
+    """
+
+    def write_vehicle(self, vin: str | None) -> None:
+        log.info("write_vehicle vin=%s", vin)
+
+    def write_samples(self, sample: SamplePoll) -> None:
+        log.debug("write_samples ts=%s n=%d", sample.ts, len(sample.samples))
+
+    def write_dtcs(self, dtcs: DTCPoll, new: set[str], cleared: set[str]) -> None:
+        log.info(
+            "write_dtcs ts=%s current=%s new=%s cleared=%s",
+            dtcs.ts,
+            dtcs.current,
+            new,
+            cleared,
+        )
+
+    def write_freeze(self, freeze: FreezePoll) -> None:
+        log.info(
+            "write_freeze ts=%s code=%s samples=%s",
+            freeze.ts,
+            freeze.triggering_code,
+            freeze.samples,
+        )
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"

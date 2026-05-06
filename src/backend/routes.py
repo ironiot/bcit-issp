@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI()
 
@@ -35,6 +35,17 @@ def get_vehicles():
     res = get_vehicles_from_db()
 
     return res
+
+
+@router.post("/dtcs/clear")
+async def clear_dtcs(request: Request):
+    """Wipes stored DTCs and freeze frames on the ECU.
+    The next collector tick will see MIL/count
+    change and emit a 'cleared' DTC event into the DB.
+    """
+    ok = await request.app.state.obd.clear_dtcs()
+    return {"cleared": ok}
+
 
 
 def get_data_from_db(drive_cycle_id: int, fields: List[Any], vin: str):
