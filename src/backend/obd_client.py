@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import obd
 
-OBD_URL = "/dev/pts/3"
+OBD_URL = "/dev/pts/5"
 
 log = logging.getLogger("obd_client")
 

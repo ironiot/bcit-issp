@@ -1,19 +1,19 @@
 from typing import Any, List
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, Request
 
-app = FastAPI()
+router = APIRouter()
 
 
-@app.get("/data/sample/{drive_cycle_id}/{fields}/{vin}")
-def get_sample_data(drive_cycle_id: int, fields: List[Any], vin: str):
+@router.get("/data/sample/{drive_cycle_id}/{fields}/{vin}")
+def get_sample_data(drive_cycle_id: int, fields: str, vin: str):
 
     res = get_data_from_db(drive_cycle_id, fields, vin)
 
     return res
 
 
-@app.get("/data/dtcs/{vin}")
+@router.get("/data/dtcs/{vin}")
 def get_errors(vin: str):
 
     res = get_errors_from_db(vin)
@@ -21,7 +21,7 @@ def get_errors(vin: str):
     return res
 
 
-@app.get("/data/drives_cycles/{n}")
+@router.get("/data/drives_cycles/{n}")
 def get_drive_cycles(n: int):
 
     res = get_drive_cycles_from_db(n)
@@ -29,7 +29,7 @@ def get_drive_cycles(n: int):
     return res
 
 
-@app.get("/data/all/vehicles")
+@router.get("/data/all/vehicles")
 def get_vehicles():
 
     res = get_vehicles_from_db()
