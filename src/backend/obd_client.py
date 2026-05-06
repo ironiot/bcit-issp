@@ -105,6 +105,20 @@ class OBDClient:
             return None
         return str(r.value)
 
+    async def read_voltage(self) -> float | None:
+        async with self._lock:
+            return await asyncio.to_thread(self._read_voltage_sync)
+
+    def _read_voltage_sync(self) -> float | None:
+        r = self.conn.query(obd.commands.ELM_VOLTAGE, force=True)
+        if r.is_null():
+            return None
+        mag = getattr(r.value, "magnitude", r.value)
+        try:
+            return float(mag)
+        except (TypeError, ValueError):
+            return None
+
     async def read_live(self) -> SamplePoll:
         async with self._lock:
             return await asyncio.to_thread(self._read_live_sync)

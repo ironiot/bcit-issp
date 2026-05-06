@@ -127,8 +127,13 @@ class Dtc(Base):
 
 
 class DB:
-    """Stub persistence layer. REPLACE THESE LATER!!!
-    """
+    """Stub persistence layer. REPLACE THESE LATER!!!"""
+
+    def start_drive_cycle(self) -> None:
+        log.info("start_drive_cycle")
+
+    def end_drive_cycle(self) -> None:
+        log.info("end_drive_cycle")
 
     def write_vehicle(self, vin: str | None) -> None:
         log.info("write_vehicle vin=%s", vin)
