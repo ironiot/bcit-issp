@@ -131,7 +131,7 @@ class OBDClient:
             result.samples.append((cmd.name, mag, str(unit)))
         if result.samples:
             line = "  ".join(f"{n}={v:.2f}{u}" for n, v, u in result.samples)
-            # log.info("sample %s", line)
+            log.info("sample %s", line)
         return result
 
     async def read_dtcs(self) -> DTCPoll:
