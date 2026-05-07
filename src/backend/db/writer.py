@@ -81,6 +81,11 @@ class DBWriter:
         for drive in await reader.get_drive_cycles(vin=self.vin, active_only=True):
             drive.end_time = func.now()
 
+    # TODO: samples_buffer is only flushed when it hits SAMPLES_BATCH_SIZE. (12)
+    # On drive-cycle end or app shutdown, partial buffer (< 12 samples) is
+    # either lost or rolled into the next cycle's first batch under a
+    # misleading timestamp window. Add a flush call from end_drive_cycle()
+    # and from the lifespan teardown in main.py.
     async def write_sample(self, poll: SamplePoll):
         if not self.vin:
             log.error("Cannot write sample: VIN not set")
@@ -99,6 +104,11 @@ class DBWriter:
                 await session.commit()
             self.samples_buffer.clear()
 
+    # TODO: clearing DTCs while engine off never gets recorded in the DB.
+    # The /dtcs/clear route relies on the collector seeing a MIL/count
+    # change on the next tick, but the collector's DTC handling is gated
+    # on engine_on. Either poll STATUS even when engine is off, or have
+    # the route mark active DTCs cleared directly here.
     async def write_dtcs(self, dtcs: DTCPoll, new: set[str], cleared: set[str]):
         if not self.vin:
             log.error("Cannot write DTCs: VIN not set")
