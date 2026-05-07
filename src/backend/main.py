@@ -2,12 +2,14 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-
 import collector
-from db import DB
+from aiohttp import ClientSession
+from db.model import get_DB_URL
+from db.writer import DBWriter
+from fastapi import FastAPI
 from obd_client import OBD_URL, OBDClient
 from routes import router
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 
 @asynccontextmanager
@@ -17,16 +19,23 @@ async def lifespan(app: FastAPI):
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 
+    engine = create_async_engine(f"postgresql+asyncpg://{get_DB_URL()}")
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    http_client = ClientSession()
+
     app.state.obd = OBDClient(port=OBD_URL)
-    app.state.db = DB()
+    db_writer = DBWriter(http_client, session_factory)
 
     await app.state.obd.connect()
 
-    app.state.vehicle_info = await app.state.obd.read_vehicle()
-    app.state.db.write_vehicle(app.state.vehicle_info)
+    if not (vehicle := await app.state.obd.read_vehicle()):
+        logging.error("Failed to read vehicle info, exiting")
+        return
+
+    await db_writer.write_vehicle(vehicle)
 
     task = asyncio.create_task(
-        collector.run(app.state.obd, app.state.db),
+        collector.run(app.state.obd, db_writer),
         name="collector",
     )
 
@@ -38,7 +47,10 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
+
         await app.state.obd.close()
+        await http_client.close()
+        await engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)

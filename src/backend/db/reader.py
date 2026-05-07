@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from db import DriveCycle, Dtc, LiveSample, Vehicle
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from db.model import DriveCycle, Dtc, LiveSample, Vehicle
 
 
 class QueryError(Exception):
@@ -13,7 +14,7 @@ class QueryError(Exception):
 _AGGREGATABLE_METRICS = ["rpm", "speed", "engine_load", "throttle_pos", "maf", "map"]
 
 
-class QueryHandler:
+class DBReader:
     def __init__(self, session: AsyncSession):
         self.session = session
 

@@ -29,7 +29,7 @@ class OBDVehicleInfo:
 @dataclass
 class SamplePoll:
     ts: datetime
-    samples: list = field(default_factory=list)  # [(pid, value, unit)]
+    samples: dict[str, float] = field(default_factory=dict)  # pid -> value
     mil: bool | None = None  # check-engine light, from mode 01 STATUS PID
     dtc_count: int | None = None  # stored DTC count, from mode 01 STATUS PID
 
@@ -44,9 +44,7 @@ class DTCPoll:
 class FreezePoll:
     ts: datetime
     triggering_code: str | None = None
-    samples: list = field(
-        default_factory=list
-    )  # [(pid, value, unit)] without DTC_ prefix
+    samples: dict[str, float] = field(default_factory=dict)  # pid -> value
 
 
 class OBDClient:
@@ -155,14 +153,13 @@ class OBDClient:
                 result.dtc_count = int(r.value.DTC_count)
                 continue
             mag = getattr(r.value, "magnitude", r.value)
-            unit = getattr(r.value, "units", "")
             try:
                 mag = float(mag)
             except (TypeError, ValueError):
                 continue
-            result.samples.append((cmd.name, mag, str(unit)))
+            result.samples[cmd.name] = mag
         if result.samples:
-            line = "  ".join(f"{n}={v:.2f}{u}" for n, v, u in result.samples)
+            line = "  ".join(f"{n}={v:.2f}" for n, v in result.samples.items())
             log.info("sample %s", line)
         return result
 
@@ -211,10 +208,9 @@ class OBDClient:
             if r.is_null():
                 continue
             mag = getattr(r.value, "magnitude", r.value)
-            unit = getattr(r.value, "units", "")
             try:
                 mag = float(mag)
             except (TypeError, ValueError):
                 continue
-            result.samples.append((live_cmd.name, mag, str(unit)))
+            result.samples[live_cmd.name] = mag
         return result

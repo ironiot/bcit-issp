@@ -5,7 +5,6 @@ import logging
 import os
 from datetime import datetime
 
-from obd_client import DTCPoll, FreezePoll, OBDVehicleInfo, SamplePoll
 from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -62,6 +61,8 @@ class Metrics(Base):
     # These are the PIDs that AI told me are important and almost universally supported.
     # Should be revised later, just a POC for now.
 
+    # Anyone wants to bet this "POC" will make it into the final product? :P
+
     rpm: Mapped[float | None]
     speed: Mapped[float | None]
     engine_load: Mapped[float | None]
@@ -87,10 +88,41 @@ class Metrics(Base):
     distance_w_mil: Mapped[float | None]
 
 
+def _parse_metrics(data: dict[str, float]):
+    return {
+        "rpm": data.get("RPM"),
+        "speed": data.get("SPEED"),
+        "engine_load": data.get("ENGINE_LOAD"),
+        "throttle_pos": data.get("THROTTLE_POS"),
+        "maf": data.get("MAF"),
+        "map": data.get("MAP"),
+        "short_fuel_trim_1": data.get("SHORT_FUEL_TRIM_1 "),
+        "short_fuel_trim_2": data.get("SHORT_FUEL_TRIM_2"),
+        "long_fuel_trim_1": data.get("LONG_FUEL_TRIM_1"),
+        "long_fuel_trim_2": data.get("LONG_FUEL_TRIM_2"),
+        "o2_b1s1": data.get("O2_B1S1"),
+        "o2_b2s1": data.get("O2_B2S1"),
+        "o2_b1s2": data.get("O2_B1S2"),
+        "o2_b2s2": data.get("O2_B2S2"),
+        "timing_advance": data.get("TIMING_ADVANCE"),
+        "run_time": data.get("RUN_TIME"),
+        "coolant_temp": data.get("COOLANT_TEMP"),
+        "intake_temp": data.get("INTAKE_TEMP"),
+        "ambient_air_temp": data.get("AMBIENT_AIR_TEMP"),
+        "control_module_voltage": data.get("CONTROL_MODULE_VOLTAGE"),
+        "fuel_level": data.get("FUEL_LEVEL"),
+        "barometric_pressure": data.get("BAROMETRIC_PRESSURE"),
+        "distance_w_mil": data.get("DISTANCE_W_MIL"),
+    }
+
+
 class LiveSample(Metrics):
     # collected every 5s or so
 
     __tablename__ = "live_sample"
+
+    def __init__(self, *, vin: str, timestamp: datetime, **data: float):
+        super().__init__(vin=vin, timestamp=timestamp, **_parse_metrics(data))
 
     vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     timestamp: Mapped[datetime] = mapped_column(
@@ -105,6 +137,9 @@ class FreezeFrame(Metrics):
 
     __tablename__ = "freeze_frame"
 
+    def __init__(self, *, dtc_id: int, **data: float):
+        super().__init__(dtc_id=dtc_id, **_parse_metrics(data))
+
     dtc_id: Mapped[int] = mapped_column(ForeignKey("dtc.id"), index=True)
 
     dtc: Mapped[Dtc] = relationship(back_populates="freeze_frame")
@@ -118,6 +153,7 @@ class Dtc(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     code: Mapped[str] = mapped_column(String(5), index=True)
+    description: Mapped[str | None] = mapped_column(String(100))
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
@@ -127,47 +163,17 @@ class Dtc(Base):
     vehicle: Mapped[Vehicle] = relationship(back_populates="dtcs")
 
 
-class DB:
-    """Stub persistence layer. REPLACE THESE LATER!!!"""
-
-    def start_drive_cycle(self) -> None:
-        log.info("start_drive_cycle")
-
-    def end_drive_cycle(self) -> None:
-        log.info("end_drive_cycle")
-
-    def write_vehicle(self, vehicle: OBDVehicleInfo | None) -> None:
-        log.info("write_vehicle vin=%s", vehicle.vin if vehicle else None)
-
-    def write_samples(self, sample: SamplePoll) -> None:
-        log.debug("write_samples ts=%s n=%d", sample.ts, len(sample.samples))
-
-    def write_dtcs(self, dtcs: DTCPoll, new: set[str], cleared: set[str]) -> None:
-        log.info(
-            "write_dtcs ts=%s current=%s new=%s cleared=%s",
-            dtcs.ts,
-            dtcs.current,
-            new,
-            cleared,
-        )
-
-    def write_freeze(self, freeze: FreezePoll) -> None:
-        log.info(
-            "write_freeze ts=%s code=%s samples=%s",
-            freeze.ts,
-            freeze.triggering_code,
-            freeze.samples,
-        )
+URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:pass@host:port/db"
 
 
-URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:password@host:port/dbname"
+def get_DB_URL():
+    if not (url := os.getenv(URL_ENV_VAR)):
+        raise ValueError(f"Missing env var {URL_ENV_VAR}")
+    return url
 
 
 async def main() -> None:
-    if not (url := os.getenv(URL_ENV_VAR)):
-        raise ValueError(f"Missing env var {URL_ENV_VAR}")
-
-    engine = create_async_engine(f"postgresql+asyncpg://{url}")
+    engine = create_async_engine(f"postgresql+asyncpg://{get_DB_URL()}")
     async with engine.begin() as conn:
         # nuke the database
         await conn.execute(text("DROP SCHEMA public CASCADE"))

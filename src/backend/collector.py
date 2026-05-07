@@ -1,8 +1,9 @@
 import asyncio
 import logging
 
-from db import DB
 from obd_client import OBDClient
+
+from main import DBWriter
 
 POLL_PERIOD = 5  # seconds
 ENGINE_ON_VOLTAGE = 13.0
@@ -10,7 +11,7 @@ ENGINE_ON_VOLTAGE = 13.0
 log = logging.getLogger("collector")
 
 
-async def run(client: OBDClient, db: DB) -> None:
+async def run(client: OBDClient, db: DBWriter) -> None:
     """
     Background polling loop.
     """
@@ -37,18 +38,18 @@ async def run(client: OBDClient, db: DB) -> None:
                     "voltage %s > %s, starting drive cycle", voltage, ENGINE_ON_VOLTAGE
                 )
                 engine_on = True
-                db.start_drive_cycle()
+                await db.start_drive_cycle()
             elif not is_high_voltage and engine_on:
                 log.info(
                     "voltage %s <= %s, ending drive cycle", voltage, ENGINE_ON_VOLTAGE
                 )
                 engine_on = False
-                db.end_drive_cycle()
+                await db.end_drive_cycle()
 
             if engine_on:
                 sample = await client.read_live()
                 if sample.samples:
-                    db.write_samples(sample)
+                    await db.write_sample(sample)
 
                 status_changed = (
                     sample.mil is not None and sample.mil != last_mil
@@ -67,10 +68,11 @@ async def run(client: OBDClient, db: DB) -> None:
                     new = dtcs.current.keys() - last_dtcs
                     cleared = last_dtcs - dtcs.current.keys()
                     last_dtcs = set(dtcs.current)
-                    db.write_dtcs(dtcs, new=new, cleared=cleared)
+                    if new or cleared:
+                        await db.write_dtcs(dtcs, new=new, cleared=cleared)
                     if new:
                         freeze = await client.read_freeze()
-                        db.write_freeze(freeze)
+                        await db.write_freeze(freeze)
                 last_mil = sample.mil
                 last_dtc_count = sample.dtc_count
             else:  # don't poll anything if engine is off, let the ECU sleep
