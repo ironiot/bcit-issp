@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import obd
 
-OBD_URL = "/dev/pts/5"
+OBD_URL = "/dev/pts/2"
 
 log = logging.getLogger("obd_client")
 
@@ -23,7 +23,6 @@ class OBDVehicleInfo:
     vin: str
     calibration_id: str | None = None
     cvn: str | None = None
-    ecu_name: str | None = None
 
 
 @dataclass
@@ -105,21 +104,35 @@ class OBDClient:
             return await asyncio.to_thread(self._read_vehicle_sync)
 
     def _read_vehicle_sync(self) -> OBDVehicleInfo | None:
-        vin = self.conn.query(obd.commands.VIN, force=True)
-        if vin.is_null():
+        if not (vin := self._read_vin_sync()):
             log.info("VIN is null")
             return None
 
-        cid = self.conn.query(obd.commands.CALIBRATION_ID, force=True)
-        cvn = self.conn.query(obd.commands.CVN, force=True)
-        ecu = self.conn.query(obd.commands.ECU_NAME, force=True)
+        r_cid = self.conn.query(obd.commands.CALIBRATION_ID, force=True)
+        cid = r_cid.value.decode() if r_cid.value else None
 
-        return OBDVehicleInfo(
-            vin=str(vin.value),
-            calibration_id=str(cid.value) if not cid.is_null() else None,
-            cvn=str(cvn.value) if not cvn.is_null() else None,
-            ecu_name=str(ecu.value) if not ecu.is_null() else None,
-        )
+        r_cvn = self.conn.query(obd.commands.CVN, force=True)
+        cvn = str(r_cvn.value) if r_cvn.value else None
+
+        vehicle = OBDVehicleInfo(vin=vin, calibration_id=cid, cvn=cvn)
+        log.info("vehicle info: %s", vehicle)
+        return vehicle
+
+    def _read_vin_sync(self) -> str | None:
+        # OBD's VIN decoding is broken, DIY
+
+        r = self.conn.query(obd.commands.VIN, force=True)
+        if not r.messages:
+            return None
+
+        payload = bytearray()
+        for m in r.messages:
+            payload.extend(m.data[3:])
+
+        if len((vin := payload.rstrip(b"\x00").decode("ascii", "replace"))) != 17:
+            log.warning("VIN unexpected length %d: %r", len(vin), vin)
+
+        return vin
 
     async def read_voltage(self) -> float | None:
         async with self._lock:

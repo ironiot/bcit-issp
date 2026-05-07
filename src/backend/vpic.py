@@ -28,12 +28,13 @@ async def fetch_vpic_data(client: ClientSession, vin: str) -> VPICVehicleInfo | 
                 return None
 
             results = {item["Variable"]: item["Value"] for item in data["Results"]}
+            log.info(f"VPIC data: {results}")
 
             return VPICVehicleInfo(
                 model=(
-                    f"{results.get('Make', '')} "
-                    f"{results.get('Model', '')} "
-                    f"{results.get('Model Year', '')}"
+                    f"{results.get('Make') or ''} "
+                    f"{results.get('Model') or ''} "
+                    f"{results.get('Model Year') or ''}"
                 ).strip()
                 or None,
                 body_type=results.get("Body Class"),

@@ -39,7 +39,6 @@ class DBWriter:
                 vin=info.vin,
                 calibration_id=info.calibration_id,
                 cvn=info.cvn,
-                ecu_name=info.ecu_name,
                 **(vpic_data or {}),
             )
             session.add(vehicle)

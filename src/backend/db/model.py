@@ -24,7 +24,6 @@ class Vehicle(Base):
     vin: Mapped[str] = mapped_column(String(17), primary_key=True)
     calibration_id: Mapped[str | None] = mapped_column(String(20))
     cvn: Mapped[str | None] = mapped_column(String(20))
-    ecu_name: Mapped[str | None] = mapped_column(String(20))
 
     # VPIC data: query NHTSA VPIC API for these fields before inserting a new vehicle
     model: Mapped[str | None] = mapped_column(String(50))
