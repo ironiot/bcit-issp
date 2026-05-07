@@ -54,8 +54,10 @@ class DBWriter:
             await self._end_active_drive_cycles(session)
 
             new_drive = DriveCycle(vin=self.vin)
-            self.active_drive_cycle_id = new_drive.id
             session.add(new_drive)
+
+            await session.flush()  # to get the new drive cycle ID
+            self.active_drive_cycle_id = new_drive.id
 
             await session.commit()
 

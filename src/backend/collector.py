@@ -31,6 +31,7 @@ async def run(client: OBDClient, db: DBWriter) -> None:
                 engine_on = False
 
             voltage = await client.read_voltage()
+            log.info("voltage: %s V", voltage)
             is_high_voltage = voltage is not None and voltage > ENGINE_ON_VOLTAGE
 
             if is_high_voltage and not engine_on:
