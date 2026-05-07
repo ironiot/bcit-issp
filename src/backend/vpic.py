@@ -1,12 +1,12 @@
+import logging
 from typing import TypedDict
 
 from aiohttp import ClientSession
-import logging
 
 log = logging.getLogger("vpic")
 
 
-class VehicleInfo(TypedDict):
+class VPICVehicleInfo(TypedDict):
     model: str | None  # e.g. "Honda Accord 2021"
     body_type: str | None  # e.g. "Sedan"
     fuel_type: str | None  # e.g. "Gasoline"
@@ -14,7 +14,7 @@ class VehicleInfo(TypedDict):
     drive_type: str | None  # e.g. "Front-Wheel Drive"
 
 
-async def fetch_vpic_data(client: ClientSession, vin: str) -> VehicleInfo | None:
+async def fetch_vpic_data(client: ClientSession, vin: str) -> VPICVehicleInfo | None:
     """Query NHTSA VPIC API for vehicle info from VIN."""
 
     url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/{vin}?format=json"
@@ -29,7 +29,7 @@ async def fetch_vpic_data(client: ClientSession, vin: str) -> VehicleInfo | None
 
             results = {item["Variable"]: item["Value"] for item in data["Results"]}
 
-            return VehicleInfo(
+            return VPICVehicleInfo(
                 model=(
                     f"{results.get('Make', '')} "
                     f"{results.get('Model', '')} "

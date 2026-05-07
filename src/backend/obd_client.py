@@ -19,6 +19,14 @@ def utcnow():
 
 
 @dataclass
+class OBDVehicleInfo:
+    vin: str
+    calibration_id: str | None = None
+    cvn: str | None = None
+    ecu_name: str | None = None
+
+
+@dataclass
 class SamplePoll:
     ts: datetime
     samples: list = field(default_factory=list)  # [(pid, value, unit)]
@@ -94,16 +102,26 @@ class OBDClient:
     def is_connected(self) -> bool:
         return self.conn is not None and self.conn.is_connected()
 
-    async def read_vin(self) -> str | None:
+    async def read_vehicle(self) -> OBDVehicleInfo | None:
         async with self._lock:
-            return await asyncio.to_thread(self._read_vin_sync)
+            return await asyncio.to_thread(self._read_vehicle_sync)
 
-    def _read_vin_sync(self) -> str | None:
-        r = self.conn.query(obd.commands.VIN, force=True)
-        if r.is_null():
+    def _read_vehicle_sync(self) -> OBDVehicleInfo | None:
+        vin = self.conn.query(obd.commands.VIN, force=True)
+        if vin.is_null():
             log.info("VIN is null")
             return None
-        return str(r.value)
+
+        cid = self.conn.query(obd.commands.CALIBRATION_ID, force=True)
+        cvn = self.conn.query(obd.commands.CVN, force=True)
+        ecu = self.conn.query(obd.commands.ECU_NAME, force=True)
+
+        return OBDVehicleInfo(
+            vin=str(vin.value),
+            calibration_id=str(cid.value) if not cid.is_null() else None,
+            cvn=str(cvn.value) if not cvn.is_null() else None,
+            ecu_name=str(ecu.value) if not ecu.is_null() else None,
+        )
 
     async def read_voltage(self) -> float | None:
         async with self._lock:

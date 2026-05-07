@@ -22,8 +22,8 @@ async def lifespan(app: FastAPI):
 
     await app.state.obd.connect()
 
-    app.state.vin = await app.state.obd.read_vin()
-    app.state.db.write_vehicle(app.state.vin)
+    app.state.vehicle_info = await app.state.obd.read_vehicle()
+    app.state.db.write_vehicle(app.state.vehicle_info)
 
     task = asyncio.create_task(
         collector.run(app.state.obd, app.state.db),

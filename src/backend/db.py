@@ -5,12 +5,11 @@ import logging
 import os
 from datetime import datetime
 
+from obd_client import DTCPoll, FreezePoll, OBDVehicleInfo, SamplePoll
 from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-
-from obd_client import DTCPoll, FreezePoll, SamplePoll
 
 log = logging.getLogger("db")
 
@@ -22,10 +21,18 @@ class Base(DeclarativeBase):
 class Vehicle(Base):
     __tablename__ = "vehicle"
 
+    # OBD data
     vin: Mapped[str] = mapped_column(String(17), primary_key=True)
     calibration_id: Mapped[str | None] = mapped_column(String(20))
     cvn: Mapped[str | None] = mapped_column(String(20))
     ecu_name: Mapped[str | None] = mapped_column(String(20))
+
+    # VPIC data: query NHTSA VPIC API for these fields before inserting a new vehicle
+    model: Mapped[str | None] = mapped_column(String(50))
+    body_type: Mapped[str | None] = mapped_column(String(50))
+    fuel_type: Mapped[str | None] = mapped_column(String(50))
+    transmission: Mapped[str | None] = mapped_column(String(50))
+    drive_type: Mapped[str | None] = mapped_column(String(50))
 
     live_samples: Mapped[list[LiveSample]] = relationship(back_populates="vehicle")
     dtcs: Mapped[list[Dtc]] = relationship(back_populates="vehicle")
@@ -85,9 +92,7 @@ class LiveSample(Metrics):
 
     __tablename__ = "live_sample"
 
-    vin: Mapped[str] = mapped_column(
-        ForeignKey("vehicle.vin"), nullable=False, index=True
-    )
+    vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
@@ -100,9 +105,7 @@ class FreezeFrame(Metrics):
 
     __tablename__ = "freeze_frame"
 
-    dtc_id: Mapped[int] = mapped_column(
-        ForeignKey("dtc.id"), nullable=False, index=True
-    )
+    dtc_id: Mapped[int] = mapped_column(ForeignKey("dtc.id"), index=True)
 
     dtc: Mapped[Dtc] = relationship(back_populates="freeze_frame")
 
@@ -113,9 +116,7 @@ class Dtc(Base):
     __tablename__ = "dtc"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    vin: Mapped[str] = mapped_column(
-        ForeignKey("vehicle.vin"), nullable=False, index=True
-    )
+    vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     code: Mapped[str] = mapped_column(String(5), index=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
@@ -135,8 +136,8 @@ class DB:
     def end_drive_cycle(self) -> None:
         log.info("end_drive_cycle")
 
-    def write_vehicle(self, vin: str | None) -> None:
-        log.info("write_vehicle vin=%s", vin)
+    def write_vehicle(self, vehicle: OBDVehicleInfo | None) -> None:
+        log.info("write_vehicle vin=%s", vehicle.vin if vehicle else None)
 
     def write_samples(self, sample: SamplePoll) -> None:
         log.debug("write_samples ts=%s n=%d", sample.ts, len(sample.samples))
