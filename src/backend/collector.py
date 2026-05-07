@@ -1,9 +1,8 @@
 import asyncio
 import logging
 
+from db.writer import DBWriter
 from obd_client import OBDClient
-
-from main import DBWriter
 
 POLL_PERIOD = 5  # seconds
 ENGINE_ON_VOLTAGE = 13.0
