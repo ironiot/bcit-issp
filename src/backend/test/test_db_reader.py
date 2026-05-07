@@ -21,7 +21,7 @@ class TestDBReader(unittest.IsolatedAsyncioTestCase):
     async def test_get_vehicle_stats(self):
         ...
 
-    async def test_get_vehicle_stats(self):
+    async def test_get_drive_cycle_stats(self):
         ...
 
 if __name__ == "__main__":
