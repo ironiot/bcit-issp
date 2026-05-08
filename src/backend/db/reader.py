@@ -46,12 +46,12 @@ class DBReader:
         active_dtcs = list(set(dtc.code for dtc in all_dtcs if not dtc.cleared_at))
 
         first_measure = await self.session.scalar(
-            select(LiveSample)
+            select(LiveSample.timestamp)
             .where(LiveSample.vin == vin)
             .order_by(LiveSample.timestamp.asc())
         )
         last_measure = await self.session.scalar(
-            select(LiveSample)
+            select(LiveSample.timestamp)
             .where(LiveSample.vin == vin)
             .order_by(LiveSample.timestamp.desc())
         )
