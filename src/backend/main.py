@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
 
     engine = create_async_engine(f"postgresql+asyncpg://{get_DB_URL()}")
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    app.state.db_session_factory = session_factory
     http_client = ClientSession()
 
     app.state.obd = OBDClient(port=OBD_URL)
