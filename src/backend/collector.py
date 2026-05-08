@@ -1,221 +1,92 @@
-import argparse
+import asyncio
 import logging
-import signal
-import time
 
-from obd import OBD, OBDCommand, commands
+from db.writer import DBWriter
+from obd_client import OBDClient
 
-OBD_URL = "/dev/pts/1"  # PTY printed by `python3 -m elm`
-
-SAMPLE_PERIOD = 1.0
-DTC_PERIOD = 30.0  # seconds between DTC scans when --dtcs is on
-
-INFO_PIDS = ["VIN", "CALIBRATION_ID", "CVN", "ECU_NAME"]
-PIDS = [
-    "RPM",
-    "SPEED",
-    "ENGINE_LOAD",
-    "THROTTLE_POS",
-    "MAF",
-    "MAP",
-    "SHORT_FUEL_TRIM_1",
-    "SHORT_FUEL_TRIM_2",
-    "LONG_FUEL_TRIM_1",
-    "LONG_FUEL_TRIM_2",
-    "O2_B1S1",
-    "O2_B2S1",
-    "O2_B1S2",
-    "O2_B2S2",
-    "TIMING_ADVANCE",
-    "RUN_TIME",
-    "COOLANT_TEMP",
-    "INTAKE_TEMP",
-    "AMBIENT_AIR_TEMP",
-    "CONTROL_MODULE_VOLTAGE",
-    "FUEL_LEVEL",
-    "BAROMETRIC_PRESSURE",
-    "DISTANCE_W_MIL",
-]
-FREEZE_PIDS = [f"DTC_{p}" for p in PIDS]
-VEHICLE = "car1"
+POLL_PERIOD = 5  # seconds
+ENGINE_ON_VOLTAGE = 13.0
 
 log = logging.getLogger("collector")
 
 
-class Collector:
-    def __init__(self, port=OBD_URL, want_vin=False, want_dtcs=False):
-        self.running = True
-        self.port = port
-        self.want_vin = want_vin
-        self.want_dtcs = want_dtcs
-        self.conn: None | OBD = None
-        self.commands = []
-        self.last_dtcs = set()
+async def run(client: OBDClient, db: DBWriter) -> None:
+    """
+    Background polling loop.
+    """
 
-    def connect(self):
-        # open connection handle to the OBD_URL
-        while self.running:
-            log.info("connecting to %s", self.port)
-            self.conn = OBD(self.port, fast=False, timeout=2)
-            if self.conn.is_connected():
-                log.info("connected, protocol=%s", self.conn.protocol_name())
-                wanted: list[OBDCommand] = [
-                    commands[p] for p in PIDS if commands.has_name(p)
-                ]  # type: ignore
-                self.commands = [c for c in wanted if self.conn.supports(c)]
+    loop = asyncio.get_running_loop()
+    next_tick = loop.time()
+    last_mil: bool | None = None
+    last_dtc_count: int | None = None
+    last_dtcs: set[str] = set()
+    engine_on: bool = False
+
+    while True:
+        try:
+            if not client.is_connected():
+                log.warning("lost connection, reconnecting")
+                await client.connect()
+                engine_on = False
+
+            voltage = await client.read_voltage()
+            log.info("voltage: %s V", voltage)
+            is_high_voltage = voltage is not None and voltage > ENGINE_ON_VOLTAGE
+
+            if is_high_voltage and not engine_on:
                 log.info(
-                    "polling %d pids: %s",
-                    len(self.commands),
-                    [c.name for c in self.commands],
+                    "voltage %s > %s, starting drive cycle", voltage, ENGINE_ON_VOLTAGE
                 )
-                if self.want_vin:
-                    self.poll_mode_09()  # get vehicle data at start if desired
-                return
-            log.warning("connect failed, retrying in 5s")
-            time.sleep(5)
+                engine_on = True
+                await db.start_drive_cycle()
+            elif not is_high_voltage and engine_on:
+                log.info(
+                    "voltage %s <= %s, ending drive cycle", voltage, ENGINE_ON_VOLTAGE
+                )
+                engine_on = False
+                await db.end_drive_cycle()
 
-    def poll_mode_09(self):
-        if not self.conn:
-            return
+            if engine_on:
+                sample = await client.read_live()
+                if sample.samples:
+                    await db.write_sample(sample)
 
-        # this is the vehicle identity data, should only need to query once
-        for name in INFO_PIDS:
-            if not commands.has_name(name):
-                continue
-            cmd = commands[name]
-            if not self.conn.supports(cmd):
-                continue
-            r = self.conn.query(cmd)
-            if r.is_null():
-                continue
-            log.info("info %s=%s", name, r.value)
+                status_changed = (
+                    sample.mil is not None and sample.mil != last_mil
+                ) or (
+                    sample.dtc_count is not None and sample.dtc_count != last_dtc_count
+                )
+                if status_changed:
+                    log.info(
+                        "status change: mil %s->%s count %s->%s",
+                        last_mil,
+                        sample.mil,
+                        last_dtc_count,
+                        sample.dtc_count,
+                    )
+                    dtcs = await client.read_dtcs()
+                    new = dtcs.current.keys() - last_dtcs
+                    cleared = last_dtcs - dtcs.current.keys()
+                    last_dtcs = set(dtcs.current)
+                    if new or cleared:
+                        await db.write_dtcs(dtcs, new=new, cleared=cleared)
+                    if new:
+                        freeze = await client.read_freeze()
+                        await db.write_freeze(freeze)
+                last_mil = sample.mil
+                last_dtc_count = sample.dtc_count
+            else:  # don't poll anything if engine is off, let the ECU sleep
+                pass
 
-    def poll_mode_03(self):
-        if not self.conn:
-            return
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("tick failed")
+            await asyncio.sleep(1)
 
-        # this mode contains the dtc data, error codes + ref to mode 2 snapshot
-        cmd = commands["GET_DTC"]
-        if not self.conn.supports(cmd):
-            log.info("dtcs unsupported by ECU")
-            self.want_dtcs = False
-            return
-        r = self.conn.query(cmd)
-        current = set()
-        if not r.is_null() and r.value:
-            for code, desc in r.value:
-                log.info("dtc %s %s", code, desc)
-                current.add(code)
+        next_tick += POLL_PERIOD
+        sleep_for = next_tick - loop.time()
+        if sleep_for > 0:
+            await asyncio.sleep(sleep_for)
         else:
-            log.info("dtcs none")
-
-        # this only gets the DTC snapshot data if there are new error codes
-        new_codes = current - self.last_dtcs
-        self.last_dtcs = current
-        if new_codes:
-            log.info("new dtcs %s, fetching freeze frame", sorted(new_codes))
-            self.poll_mode_02()
-
-    def poll_mode_01(self):
-        if not self.conn:
-            return
-
-        # this mode is the 'live' vehicle data, like speed rpm etc...
-        samples = []
-        for cmd in self.commands:
-            r = self.conn.query(cmd)
-            if r.is_null():
-                continue
-            mag = getattr(r.value, "magnitude", r.value)
-            unit = getattr(r.value, "units", "")
-            try:
-                mag = float(mag)  # type: ignore
-            except (TypeError, ValueError):
-                continue
-            samples.append((cmd.name, mag, unit))
-        if samples:
-            line = "  ".join(f"{n}={v:.2f}{u}" for n, v, u in samples)
-            log.info("sample %s\n", line)
-
-    def poll_mode_02(self):
-        # this is the snapshot of a vehicle at the time of a DTC, same as mode 1 but with DTC_ prefix
-
-        if not self.conn:
-            return
-
-        frame = self.conn.query(commands["FREEZE_DTC"])
-        if not frame.is_null() and frame.value:
-            log.info("freeze frame for %s", frame.value)
-        for name in FREEZE_PIDS:
-            if not commands.has_name(name):
-                continue
-            cmd = commands[name]
-            if not self.conn.supports(cmd):
-                continue
-            r = self.conn.query(cmd)
-            if r.is_null():
-                continue
-            log.info("freeze %s=%s", name, r.value)
-
-    def run(self):
-        # main driver, connects and runs polls at specified frequencies
-        self.connect()
-        # ticks because we do not ever want to go backwards in time
-        next_tick = time.monotonic()
-        next_dtc = time.monotonic()
-        while self.running and self.conn:
-            try:
-                if not self.conn.is_connected():
-                    log.warning("lost connection, reconnecting")
-                    self.connect()
-                self.poll_mode_01()  # main data is here
-                if self.want_dtcs and time.monotonic() >= next_dtc:
-                    self.poll_mode_03()  # error data
-                    next_dtc = time.monotonic() + DTC_PERIOD
-            except Exception:
-                log.exception("poll failed")
-                time.sleep(1)
-            next_tick += SAMPLE_PERIOD
-            sleep = next_tick - time.monotonic()
-            if sleep > 0:
-                time.sleep(sleep)
-            else:
-                next_tick = time.monotonic()
-
-    def stop(self, *_):
-        # close connection
-        log.info("shutting down")
-        self.running = False
-        if self.conn:
-            self.conn.close()
-
-
-def main():
-    # args
-    p = argparse.ArgumentParser()
-    p.add_argument(
-        "--port", default=OBD_URL, help=f"OBD port path or URL (default: {OBD_URL})"
-    )
-    p.add_argument(
-        "--vin",
-        action="store_true",
-        help="query VIN and Mode 09 vehicle info once at connect",
-    )
-    p.add_argument(
-        "--dtcs", action="store_true", help=f"poll stored DTCs every {DTC_PERIOD:.0f}s"
-    )
-    args = p.parse_args()
-
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
-    )
-
-    # run
-    c = Collector(port=args.port, want_vin=args.vin, want_dtcs=args.dtcs)
-    signal.signal(signal.SIGINT, c.stop)
-    signal.signal(signal.SIGTERM, c.stop)
-    c.run()
-
-
-if __name__ == "__main__":
-    main()
+            next_tick = loop.time()
