@@ -48,6 +48,7 @@ class DriveCycle(Base):
     end_time: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), index=True
     )
+    distance: Mapped[float | None] = mapped_column()
 
     vehicle: Mapped[Vehicle] = relationship(back_populates="drive_cycles")
 

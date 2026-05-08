@@ -2,7 +2,7 @@ import logging
 
 from aiohttp import ClientSession
 from db.model import DriveCycle, Dtc, FreezeFrame, LiveSample, Vehicle, func
-from db.reader import DBReader
+from db.reader import DBReader, calculate_distance
 from obd_client import DTCPoll, FreezePoll, OBDVehicleInfo, SamplePoll
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from vpic import fetch_vpic_data
@@ -71,21 +71,37 @@ class DBWriter:
                 drive := await session.get(DriveCycle, self.active_drive_cycle_id)
             ):
                 drive.end_time = func.now()
+                active_drives = [drive]
             else:
-                await self._end_active_drive_cycles(session)
+                active_drives = await self._end_active_drive_cycles(session)
 
+            for drive in active_drives:
+                await self._flush_samples_buffer()
+                await session.flush()  # to get the end_time for distance calculation
+
+                reader = DBReader(session)
+                samples = await reader.get_samples_in_drive_cycle(drive.id)
+                drive.distance = calculate_distance(samples)
+
+            self.active_drive_cycle_id = None
             await session.commit()
 
-    async def _end_active_drive_cycles(self, session: AsyncSession):
+    async def _end_active_drive_cycles(self, session: AsyncSession) -> list[DriveCycle]:
+        # There should never be multiple active drive cycles for the same vehicle, but just in case, end them all.
+        # TODO: find a better way to enforce this
+
         reader = DBReader(session)
-        for drive in await reader.get_drive_cycles(vin=self.vin, active_only=True):
+
+        active_drives = await reader.get_drive_cycles(vin=self.vin, active_only=True)
+        for drive in active_drives:
             drive.end_time = func.now()
 
-    # TODO: samples_buffer is only flushed when it hits SAMPLES_BATCH_SIZE. (12)
-    # On drive-cycle end or app shutdown, partial buffer (< 12 samples) is
+        return active_drives
+
+    # TODO: samples_buffer is only flushed when it hits SAMPLES_BATCH_SIZE or drive cycle ends.
+    # On app shutdown, partial buffer (< 12 samples) is
     # either lost or rolled into the next cycle's first batch under a
-    # misleading timestamp window. Add a flush call from end_drive_cycle()
-    # and from the lifespan teardown in main.py.
+    # misleading timestamp window. Add a flush call from the lifespan teardown in main.py.
     async def write_sample(self, poll: SamplePoll):
         if not self.vin:
             log.error("Cannot write sample: VIN not set")
@@ -99,10 +115,16 @@ class DBWriter:
         self.samples_buffer.append(sample)
 
         if len(self.samples_buffer) >= SAMPLES_BATCH_SIZE:
-            async with self.session_factory() as session:
-                session.add_all(instances=self.samples_buffer)
-                await session.commit()
-            self.samples_buffer.clear()
+            await self._flush_samples_buffer()
+
+    async def _flush_samples_buffer(self):
+        if not self.samples_buffer:
+            return
+
+        async with self.session_factory() as session:
+            session.add_all(instances=self.samples_buffer)
+            await session.commit()
+        self.samples_buffer.clear()
 
     # TODO: clearing DTCs while engine off never gets recorded in the DB.
     # The /dtcs/clear route relies on the collector seeing a MIL/count

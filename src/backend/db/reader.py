@@ -1,10 +1,10 @@
 from datetime import datetime
+from typing import Mapping
 
+from db.model import DriveCycle, Dtc, LiveSample, Vehicle
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from db.model import DriveCycle, Dtc, LiveSample, Vehicle
 
 
 class QueryError(Exception):
@@ -32,60 +32,74 @@ class DBReader:
     async def get_vehicle_stats(self, vin: str):
         """Return aggregated stats for a vehicle. Include
         - number of drive cycles
+        - first measure timestamp
+        - last measure timestamp
+        - total number of DTCs
         - active DTC codes
-        - max metrics across all drive cycles (e.g. max rpm, max speed)
+        - measured distance
         """
 
         drive_cycles_count = len(await self.get_drive_cycles(vin=vin))
-        active_dtc_codes = [
-            dtc.code for dtc in await self.get_dtcs(vin=vin, active_only=True)
-        ]
-        maxMetrics = await self._get_aggregated_metrics(
-            vin,
-            with_avg=False,
-            with_max=True,
-            with_min=False,
+
+        all_dtcs = await self.get_dtcs(vin=vin)
+        total_dtcs_count = len(all_dtcs)
+        active_dtcs = list(set(dtc.code for dtc in all_dtcs if not dtc.cleared_at))
+
+        first_measure = await self.session.scalar(
+            select(LiveSample)
+            .where(LiveSample.vin == vin)
+            .order_by(LiveSample.timestamp.asc())
+        )
+        last_measure = await self.session.scalar(
+            select(LiveSample)
+            .where(LiveSample.vin == vin)
+            .order_by(LiveSample.timestamp.desc())
         )
 
-        stats = {
+        distance = (
+            await self.session.scalar(
+                select(func.sum(DriveCycle.distance)).where(DriveCycle.vin == vin)
+            )
+            or 0
+        )
+        # if there's an active drive cycle, calculate distance for it as well
+        if drives := await self.get_drive_cycles(vin=vin, limit=1):
+            if not (last_drive := drives[0]).end_time:
+                samples = await self.get_samples_in_drive_cycle(last_drive.id)
+                distance += calculate_distance(samples)
+
+        return {
             "drive_cycles_count": drive_cycles_count,
-            "active_dtc_codes": active_dtc_codes,
+            "total_dtcs_count": total_dtcs_count,
+            "active_dtcs": active_dtcs,
+            "first_measure": first_measure,
+            "last_measure": last_measure,
+            "distance": distance,
         }
-        stats.update({
-            f"max_{metric}": getattr(maxMetrics, f"max_{metric}")
-            for metric in _AGGREGATABLE_METRICS
-        })
-        return stats
 
     async def get_drive_cycle_stats(
         self, drive_cycle_id: int
-    ) -> dict[str, float | None]:
+    ) -> Mapping[str, float | None]:
         """Return aggregated stats for a drive cycle."""
 
-        start_time, end_time = await self._get_drive_cycle_time_range(drive_cycle_id)
-        samples = await self.get_samples_in_drive_cycle(drive_cycle_id)
+        if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):
+            raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
+
+        samples = await self.get_samples_in_time_range(
+            vin=drive.vin, start_time=drive.start_time, end_time=drive.end_time
+        )
 
         if not samples:
             raise QueryError(f"No samples found for drive cycle: {drive_cycle_id}")
 
         aggregated_metrics = await self._get_aggregated_metrics(
-            samples[0].vin, start_time, end_time
+            vin=drive.vin,
+            start_time=drive.start_time,
+            end_time=drive.end_time,
         )
 
-        # calculate distance using speed and time difference between samples
-        # TODO optimize: make this a db column, calculate once when inserting
-        distance = 0  # in km
-        if len(samples) > 1:
-            for i in range(1, len(samples)):
-                prev = samples[i - 1]
-                curr = samples[i]
-
-                speed_prev = prev.speed or 0  # speed in km/h
-                speed_curr = curr.speed or 0
-                avg_speed = (speed_prev + speed_curr) / 2.0
-
-                delta_hours = (curr.timestamp - prev.timestamp).total_seconds() / 3600.0
-                distance += avg_speed * delta_hours
+        if (distance := drive.distance) is None:
+            distance = calculate_distance(samples)
 
         stats = {"distance": distance}
         stats.update({
@@ -138,18 +152,12 @@ class DBReader:
     async def get_samples_in_drive_cycle(self, drive_cycle_id: int) -> list[LiveSample]:
         """Return sample metrics for a given drive cycle, ordered by timestamp ascending."""
 
-        start_time, end_time = await self._get_drive_cycle_time_range(drive_cycle_id)
+        if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):
+            raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
 
-        stmt = (
-            select(LiveSample)
-            .where(LiveSample.timestamp >= start_time)
-            .order_by(LiveSample.timestamp.asc())
+        return await self.get_samples_in_time_range(
+            vin=drive.vin, start_time=drive.start_time, end_time=drive.end_time
         )
-        if end_time:
-            stmt = stmt.where(LiveSample.timestamp <= end_time)
-
-        result = await self.session.scalars(stmt)
-        return list(result.all())
 
     async def get_samples_in_time_range(
         self,
@@ -213,43 +221,25 @@ class DBReader:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
-    async def _get_drive_cycle_time_range(
-        self, drive_cycle_id: int
-    ) -> tuple[datetime, datetime | None]:
-        if not (drive_cycle := await self.session.get(DriveCycle, drive_cycle_id)):
-            raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
-
-        return drive_cycle.start_time, drive_cycle.end_time
-
     async def _get_aggregated_metrics(
         self,
         vin: str,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        *,
-        with_min=True,
-        with_max=True,
-        with_avg=True,
     ):
         stmt = select(
             *[
                 func.avg(getattr(LiveSample, metric)).label(f"avg_{metric}")
                 for metric in _AGGREGATABLE_METRICS
-            ]
-            if with_avg
-            else [],
+            ],
             *[
                 func.max(getattr(LiveSample, metric)).label(f"max_{metric}")
                 for metric in _AGGREGATABLE_METRICS
-            ]
-            if with_max
-            else [],
+            ],
             *[
                 func.min(getattr(LiveSample, metric)).label(f"min_{metric}")
                 for metric in _AGGREGATABLE_METRICS
-            ]
-            if with_min
-            else [],
+            ],
         ).where(LiveSample.vin == vin)
         if start_time:
             stmt = stmt.where(LiveSample.timestamp >= start_time)
@@ -261,3 +251,21 @@ class DBReader:
             raise QueryError("No samples found in the given time range")
 
         return row
+
+
+def calculate_distance(samples: list[LiveSample]) -> float:
+    # using speed and time difference between samples
+
+    distance = 0
+    for i in range(1, len(samples)):
+        prev = samples[i - 1]
+        curr = samples[i]
+
+        speed_prev = prev.speed or 0  # speed in km/h
+        speed_curr = curr.speed or 0
+        avg_speed = (speed_prev + speed_curr) / 2.0
+
+        delta_hours = (curr.timestamp - prev.timestamp).total_seconds() / 3600.0
+        distance += avg_speed * delta_hours
+
+    return distance
