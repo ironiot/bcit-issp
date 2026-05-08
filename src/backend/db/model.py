@@ -172,6 +172,9 @@ def get_DB_URL():
 
 
 async def main() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()
     engine = create_async_engine(f"postgresql+asyncpg://{get_DB_URL()}")
     async with engine.begin() as conn:
         # nuke the database

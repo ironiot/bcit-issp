@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import obd
 
-OBD_URL = "/dev/pts/2"
+OBD_URL = "socket://127.0.0.1:35000"
 
 log = logging.getLogger("obd_client")
 
@@ -76,7 +76,9 @@ class OBDClient:
         if self.conn is not None and self.conn.is_connected():
             return
         log.info("connecting to %s", self.port)
-        self.conn = obd.OBD(self.port, fast=False, timeout=2)
+        # explicit baudrate skips python-obd's auto_baudrate() probe, which
+        # fails on socket:// URLs (it only auto-skips for /dev/pts paths)
+        self.conn = obd.OBD(self.port, fast=False, timeout=2, baudrate=38400)
         if not self.conn.is_connected():
             raise ConnectionError(f"failed to open {self.port}")
         log.info("connected, protocol=%s", self.conn.protocol_name())

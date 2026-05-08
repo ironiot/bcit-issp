@@ -6,10 +6,13 @@ import collector
 from aiohttp import ClientSession
 from db.model import get_DB_URL
 from db.writer import DBWriter
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from obd_client import OBD_URL, OBDClient
 from routes import router
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+load_dotenv()
 
 
 @asynccontextmanager
