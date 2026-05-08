@@ -1,9 +1,8 @@
 import asyncio
 import logging
 
+from db.writer import DBWriter
 from obd_client import OBDClient
-
-from main import DBWriter
 
 POLL_PERIOD = 5  # seconds
 ENGINE_ON_VOLTAGE = 13.0
@@ -31,6 +30,7 @@ async def run(client: OBDClient, db: DBWriter) -> None:
                 engine_on = False
 
             voltage = await client.read_voltage()
+            log.info("voltage: %s V", voltage)
             is_high_voltage = voltage is not None and voltage > ENGINE_ON_VOLTAGE
 
             if is_high_voltage and not engine_on:

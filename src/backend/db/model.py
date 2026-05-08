@@ -95,7 +95,7 @@ def _parse_metrics(data: dict[str, float]):
         "throttle_pos": data.get("THROTTLE_POS"),
         "maf": data.get("MAF"),
         "map": data.get("MAP"),
-        "short_fuel_trim_1": data.get("SHORT_FUEL_TRIM_1 "),
+        "short_fuel_trim_1": data.get("SHORT_FUEL_TRIM_1"),
         "short_fuel_trim_2": data.get("SHORT_FUEL_TRIM_2"),
         "long_fuel_trim_1": data.get("LONG_FUEL_TRIM_1"),
         "long_fuel_trim_2": data.get("LONG_FUEL_TRIM_2"),
