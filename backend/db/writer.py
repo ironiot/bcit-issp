@@ -75,9 +75,13 @@ class DBWriter:
             else:
                 active_drives = await self._end_active_drive_cycles(session)
 
+            session.add_all(instances=self.samples_buffer)
+            self.samples_buffer.clear()
+            await session.flush()
+
             for drive in active_drives:
-                await self._flush_samples_buffer()
-                await session.flush()  # to get the end_time for distance calculation
+                # to get the end_time for distance calculation
+                await session.refresh(drive)
 
                 reader = DBReader(session)
                 samples = await reader.get_samples_in_drive_cycle(drive.id)
@@ -115,16 +119,10 @@ class DBWriter:
         self.samples_buffer.append(sample)
 
         if len(self.samples_buffer) >= SAMPLES_BATCH_SIZE:
-            await self._flush_samples_buffer()
-
-    async def _flush_samples_buffer(self):
-        if not self.samples_buffer:
-            return
-
-        async with self.session_factory() as session:
-            session.add_all(instances=self.samples_buffer)
-            await session.commit()
-        self.samples_buffer.clear()
+            async with self.session_factory() as session:
+                session.add_all(instances=self.samples_buffer)
+                self.samples_buffer.clear()
+                await session.commit()
 
     # TODO: clearing DTCs while engine off never gets recorded in the DB.
     # The /dtcs/clear route relies on the collector seeing a MIL/count
