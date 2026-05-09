@@ -67,43 +67,45 @@ class DBWriter:
             return
 
         async with self.session_factory() as session:
+            session.add_all(instances=self.samples_buffer)
+            self.samples_buffer.clear()
+
             if self.active_drive_cycle_id and (
                 drive := await session.get(DriveCycle, self.active_drive_cycle_id)
             ):
                 drive.end_time = func.now()
-                active_drives = [drive]
+                await self._update_drive_cycle_distance(session, drive)
             else:
-                active_drives = await self._end_active_drive_cycles(session)
-
-            session.add_all(instances=self.samples_buffer)
-            self.samples_buffer.clear()
-            await session.flush()
-
-            for drive in active_drives:
-                # to get the end_time for distance calculation
-                await session.refresh(drive)
-
-                reader = DBReader(session)
-                samples = await reader.get_samples_in_drive_cycle(drive.id)
-                drive.distance = calculate_distance(samples)
+                await self._end_active_drive_cycles(session)
 
             self.active_drive_cycle_id = None
             await session.commit()
 
-    async def _end_active_drive_cycles(self, session: AsyncSession) -> list[DriveCycle]:
+    async def _end_active_drive_cycles(self, session: AsyncSession):
         # There should never be multiple active drive cycles for the same vehicle, but just in case, end them all.
         # TODO: find a better way to enforce this
 
         if not self.vin:
             log.error("Cannot end active drive cycles: VIN not set")
-            return []
+            return
 
         reader = DBReader(session)
-        active_drives = await reader.get_drive_cycles(self.vin, active_only=True)
-        for drive in active_drives:
-            drive.end_time = func.now()
 
-        return active_drives
+        for drive in await reader.get_drive_cycles(self.vin, active_only=True):
+            drive.end_time = func.now()
+            await self._update_drive_cycle_distance(session, drive)
+
+    async def _update_drive_cycle_distance(
+        self, session: AsyncSession, drive: DriveCycle
+    ):
+        reader = DBReader(session)
+
+        # to save drive cycle's end time before calculating distance
+        await session.flush()
+        await session.refresh(drive)
+
+        samples = await reader._get_samples_in_drive_cycle(drive)
+        drive.distance = calculate_distance(samples)
 
     # TODO: samples_buffer is only flushed when it hits SAMPLES_BATCH_SIZE or drive cycle ends.
     # On app shutdown, partial buffer (< 12 samples) is
