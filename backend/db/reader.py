@@ -62,11 +62,11 @@ class DBReader:
             )
             or 0
         )
-        # if there's an active drive cycle, calculate distance for it as well
-        if drives := await self.get_drive_cycles(vin=vin, limit=1):
-            if not (last_drive := drives[0]).end_time:
-                samples = await self.get_samples_in_drive_cycle(last_drive.id)
-                distance += calculate_distance(samples)
+        # If there are active drive cycles, calculate distance for them as well
+        # This looks like an N+1 query, but in practice there should be at most 1 active drive cycle.
+        for active_drive in await self.get_drive_cycles(vin, active_only=True):
+            samples = await self._get_samples_in_drive_cycle(active_drive)
+            distance += calculate_distance(samples)
 
         return {
             "drive_cycles_count": drive_cycles_count,
@@ -85,11 +85,7 @@ class DBReader:
         if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):
             raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
 
-        samples = await self.get_samples_in_time_range(
-            vin=drive.vin, start_time=drive.start_time, end_time=drive.end_time
-        )
-
-        if not samples:
+        if not (samples := await self._get_samples_in_drive_cycle(drive)):
             raise QueryError(f"No samples found for drive cycle: {drive_cycle_id}")
 
         aggregated_metrics = await self._get_aggregated_metrics(
@@ -118,30 +114,27 @@ class DBReader:
 
     async def get_drive_cycles(
         self,
+        vin: str,
         *,
-        vin: str | None = None,
-        limit: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         active_only: bool = False,
     ) -> list[DriveCycle]:
-        """Return drive cycles, ordered by start time descending.
+        """Return drive cycles for a VIN, ordered by start time descending.
         Optional filters:
-        - VIN
         - time range,
-        - number of results returned
         - active drive cycles only (i.e. not ended)
         """
 
-        stmt = select(DriveCycle).order_by(DriveCycle.start_time.desc())
-        if vin:
-            stmt = stmt.where(DriveCycle.vin == vin)
+        stmt = (
+            select(DriveCycle)
+            .where(DriveCycle.vin == vin)
+            .order_by(DriveCycle.start_time.desc())
+        )
         if start_time:
             stmt = stmt.where(DriveCycle.start_time >= start_time)
         if end_time:
             stmt = stmt.where(DriveCycle.start_time <= end_time)
-        if limit:
-            stmt = stmt.limit(limit)
         if active_only:
             stmt = stmt.where(DriveCycle.end_time == None)  # noqa: E711
             # cannot use `end_time is none`, `==` has special handling by SQLAlchemy
@@ -155,6 +148,9 @@ class DBReader:
         if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):
             raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
 
+        return await self._get_samples_in_drive_cycle(drive)
+
+    async def _get_samples_in_drive_cycle(self, drive: DriveCycle) -> list[LiveSample]:
         return await self.get_samples_in_time_range(
             vin=drive.vin, start_time=drive.start_time, end_time=drive.end_time
         )
@@ -162,6 +158,7 @@ class DBReader:
     async def get_samples_in_time_range(
         self,
         vin: str,
+        *,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
     ) -> list[LiveSample]:
@@ -182,32 +179,26 @@ class DBReader:
 
     async def get_dtcs(
         self,
+        vin: str,
         *,
-        limit: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         active_only: bool = False,
         code: str | None = None,
-        vin: str | None = None,
     ) -> list[Dtc]:
-        """Return DTCs ordered by timestamp descending.
+        """Return DTCs for a VIN, ordered by timestamp descending.
         Optional filters:
-        - VIN
         - time range
-        - number of results returned
         - active DTCs only (i.e. not cleared)
         - code
         """
 
         stmt = (
             select(Dtc)
+            .where(Dtc.vin == vin)
             .options(selectinload(Dtc.freeze_frame))
             .order_by(Dtc.timestamp.desc())
         )
-        if vin:
-            stmt = stmt.where(Dtc.vin == vin)
-        if limit:
-            stmt = stmt.limit(limit)
         if start_time:
             stmt = stmt.where(Dtc.timestamp >= start_time)
         if end_time:

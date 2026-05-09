@@ -1,13 +1,8 @@
-from datetime import datetime
-from typing import Any, List
-
-from fastapi import APIRouter, Request
 from contextlib import asynccontextmanager
-
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
 
 from db.reader import DBReader
-
+from fastapi import APIRouter, Request
 from fastapi.encoders import jsonable_encoder
 
 router = APIRouter()
@@ -20,8 +15,8 @@ async def get_db_reader(request: Request):
         yield DBReader(session)
 
 
-@router.get("/data/sample/{drive_cycle_id}/{fields}")
-async def get_sample_data(drive_cycle_id: int, fields: str, request: Request):
+@router.get("/data/samples/drive_cycle/{id}")
+async def get_sample_data(id: int, request: Request, fields: str = ""):
     """
     Gets sample data for a given drive cycle, then filters it to only include the given fields.
     Returns a json list of dicts, where each dict represents a sample and only includes the requested fields
@@ -30,36 +25,64 @@ async def get_sample_data(drive_cycle_id: int, fields: str, request: Request):
     """
 
     async with get_db_reader(request) as reader:
-        samples = await reader.get_samples_in_drive_cycle(drive_cycle_id)
+        samples = await reader.get_samples_in_drive_cycle(id)
+
+    if not fields:
+        res = [
+            {c.name: getattr(s, c.name, None) for c in s.__table__.columns}
+            for s in samples
+        ]
+        return jsonable_encoder(res)
 
     fields_list = [f.strip() for f in fields.split(",") if f.strip()]
-
-    res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
-
-    return jsonable_encoder(res)
+    filtered_res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
+    return jsonable_encoder(filtered_res)
 
 
-@router.get("/data/sample/{vin}/{start_time}/{end_time}/{fields}")
-async def get_sample_data_by_time_range(vin: str, start_time: str, end_time: str, fields: str, request: Request):
-
-    start_time_dt = datetime.fromisoformat(start_time)
-    end_time_dt = datetime.fromisoformat(end_time)
-
+@router.get("/data/samples/vin/{vin}")
+async def get_sample_data_by_time_range(
+    vin: str,
+    request: Request,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    fields: str = "",
+):
     async with get_db_reader(request) as reader:
-        samples = await reader.get_samples_in_time_range(vin=vin, start_time=start_time_dt, end_time=end_time_dt)
-    
+        samples = await reader.get_samples_in_time_range(
+            vin,
+            start_time=datetime.fromisoformat(start_time) if start_time else None,
+            end_time=datetime.fromisoformat(end_time) if end_time else None,
+        )
+
+    if not fields:
+        res = [
+            {c.name: getattr(s, c.name, None) for c in s.__table__.columns}
+            for s in samples
+        ]
+        return jsonable_encoder(res)
+
     fields_list = [f.strip() for f in fields.split(",") if f.strip()]
-
-    res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
-
-    return jsonable_encoder(res)
-
+    filtered_res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
+    return jsonable_encoder(filtered_res)
 
 
 @router.get("/data/dtcs/{vin}")
-async def get_errors(vin: str, request: Request):
+async def get_errors(
+    vin: str,
+    request: Request,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+    active_only: bool = False,
+    code: str | None = None,
+):
     async with get_db_reader(request) as reader:
-        dtcs = await reader.get_dtcs(vin=vin)
+        dtcs = await reader.get_dtcs(
+            vin,
+            start_time=start_time,
+            end_time=end_time,
+            active_only=active_only,
+            code=code,
+        )
 
     res = []
     for dtc in dtcs:
@@ -76,10 +99,21 @@ async def get_errors(vin: str, request: Request):
     return jsonable_encoder(res)
 
 
-@router.get("/data/drives_cycles/{n}")
-async def get_drive_cycles(n: int, request: Request):
+@router.get("/data/drives_cycles/{vin}")
+async def get_drive_cycles(
+    request: Request,
+    vin: str,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+    active_only: bool = False,
+):
     async with get_db_reader(request) as reader:
-        drive_cycles = await reader.get_drive_cycles(limit=n)
+        drive_cycles = await reader.get_drive_cycles(
+            vin,
+            start_time=start_time,
+            end_time=end_time,
+            active_only=active_only,
+        )
 
     res = [
         {c.name: getattr(dc, c.name, None) for c in dc.__table__.columns}
@@ -88,7 +122,7 @@ async def get_drive_cycles(n: int, request: Request):
     return jsonable_encoder(res)
 
 
-@router.get("/data/all/vehicles")
+@router.get("/data/vehicles")
 async def get_vehicles(request: Request):
     async with get_db_reader(request) as reader:
         vehicles = await reader.get_all_vehicles()
@@ -100,19 +134,20 @@ async def get_vehicles(request: Request):
     return jsonable_encoder(res)
 
 
-@router.get("/data/all/vehicle_stats/{vin}")
+@router.get("/data/vehicle_stats/{vin}")
 async def get_vehicle_stats(vin: str, request: Request):
     async with get_db_reader(request) as reader:
         stats = await reader.get_vehicle_stats(vin=vin)
 
     return jsonable_encoder(stats)
 
+
 @router.get("/data/drive_cycle_stats/{drive_cycle_id}")
 async def get_drive_cycle_stats(drive_cycle_id: int, request: Request):
-     async with get_db_reader(request) as reader:
-         stats = await reader.get_drive_cycle_stats(drive_cycle_id=drive_cycle_id)
+    async with get_db_reader(request) as reader:
+        stats = await reader.get_drive_cycle_stats(drive_cycle_id=drive_cycle_id)
 
-     return jsonable_encoder(stats)
+    return jsonable_encoder(stats)
 
 
 @router.post("/dtcs/clear")

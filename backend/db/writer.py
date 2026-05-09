@@ -94,9 +94,12 @@ class DBWriter:
         # There should never be multiple active drive cycles for the same vehicle, but just in case, end them all.
         # TODO: find a better way to enforce this
 
-        reader = DBReader(session)
+        if not self.vin:
+            log.error("Cannot end active drive cycles: VIN not set")
+            return []
 
-        active_drives = await reader.get_drive_cycles(vin=self.vin, active_only=True)
+        reader = DBReader(session)
+        active_drives = await reader.get_drive_cycles(self.vin, active_only=True)
         for drive in active_drives:
             drive.end_time = func.now()
 
