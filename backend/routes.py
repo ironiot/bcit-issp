@@ -35,7 +35,7 @@ async def get_sample_data(id: UUID, request: Request, fields: str = ""):
         ]
         return jsonable_encoder(res)
 
-    fields_list = [f.strip() for f in fields.split(",") if f.strip()]
+    fields_list = ["timestamp"] + [f.strip() for f in fields.split(",") if f.strip()]
     filtered_res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
     return jsonable_encoder(filtered_res)
 
@@ -62,7 +62,7 @@ async def get_sample_data_by_time_range(
         ]
         return jsonable_encoder(res)
 
-    fields_list = [f.strip() for f in fields.split(",") if f.strip()]
+    fields_list = ["timestamp"] + [f.strip() for f in fields.split(",") if f.strip()]
     filtered_res = [{f: getattr(s, f, None) for f in fields_list} for s in samples]
     return jsonable_encoder(filtered_res)
 
