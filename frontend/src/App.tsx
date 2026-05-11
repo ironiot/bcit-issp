@@ -1,6 +1,7 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { Config } from "./Config";
-import { Dashboard } from "./Dashboard";
+import { Monitors } from "./Monitors";
+import { Errors } from "./Errors";
 
 function Layout() {
 	return (
@@ -13,7 +14,13 @@ function Layout() {
 						end
 						className={({ isActive }) => (isActive ? "active" : "")}
 					>
-						Dashboard
+						Monitors
+					</NavLink>
+					<NavLink
+						to="/errors"
+						className={({ isActive }) => (isActive ? "active" : "")}
+					>
+						Errors
 					</NavLink>
 					<NavLink
 						to="/config"
@@ -25,7 +32,8 @@ function Layout() {
 			</header>
 			<main>
 				<Routes>
-					<Route path="/" element={<Dashboard />} />
+					<Route path="/" element={<Monitors />} />
+					<Route path="/errors" element={<Errors />} />
 					<Route path="/config" element={<Config />} />
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>
