@@ -1,0 +1,15 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+	"linter": {
+		"includes": ["**/*.ts", "**/*.tsx", "!!**/*.gen.ts"],
+		"rules": {
+			"style": {
+				"noNonNullAssertion": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
+			},
+			"a11y": "off"
+		}
+	}
+}

@@ -220,3 +220,5 @@ __marimo__/
 # Others
 *.log.*
 .vscode
+.vite
+node_modules
