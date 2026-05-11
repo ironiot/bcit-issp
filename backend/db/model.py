@@ -32,10 +32,6 @@ class Vehicle(Base):
     transmission: Mapped[str | None] = mapped_column(String(50))
     drive_type: Mapped[str | None] = mapped_column(String(50))
 
-    live_samples: Mapped[list[LiveSample]] = relationship(back_populates="vehicle")
-    dtcs: Mapped[list[Dtc]] = relationship(back_populates="vehicle")
-    drive_cycles: Mapped[list[DriveCycle]] = relationship(back_populates="vehicle")
-
 
 class DriveCycle(Base):
     __tablename__ = "drive_cycle"
@@ -49,8 +45,6 @@ class DriveCycle(Base):
         DateTime(timezone=True), index=True
     )
     distance: Mapped[float | None] = mapped_column()
-
-    vehicle: Mapped[Vehicle] = relationship(back_populates="drive_cycles")
 
 
 class Metrics(Base):
@@ -129,8 +123,6 @@ class LiveSample(Metrics):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    vehicle: Mapped[Vehicle] = relationship(back_populates="live_samples")
-
 
 class FreezeFrame(Metrics):
     # collected when there's a new DTC
@@ -141,8 +133,6 @@ class FreezeFrame(Metrics):
         super().__init__(dtc_id=dtc_id, **_parse_metrics(data))
 
     dtc_id: Mapped[int] = mapped_column(ForeignKey("dtc.id"), index=True)
-
-    dtc: Mapped[Dtc] = relationship(back_populates="freeze_frame")
 
 
 class Dtc(Base):
@@ -159,8 +149,7 @@ class Dtc(Base):
     )
     cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    freeze_frame: Mapped[FreezeFrame | None] = relationship(back_populates="dtc")
-    vehicle: Mapped[Vehicle] = relationship(back_populates="dtcs")
+    freeze_frame: Mapped[FreezeFrame | None] = relationship()
 
 
 URL_ENV_VAR = "BCIT_ISSP_DB_URL"  # "user:pass@host:port/db"
