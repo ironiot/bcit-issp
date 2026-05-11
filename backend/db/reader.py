@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from db.model import DriveCycle, Dtc, LiveSample, Vehicle
@@ -108,7 +109,7 @@ class DBReader:
 
         return await self.session.get(Vehicle, vin)
 
-    async def get_drive_cycle_stats(self, drive_cycle_id: int) -> dict:
+    async def get_drive_cycle_stats(self, drive_cycle_id: uuid.UUID) -> dict:
         """Return stats for a drive cycle.
         -  distance travelled
         -  dtcs during the drive cycle
@@ -180,7 +181,9 @@ class DBReader:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
-    async def get_samples_in_drive_cycle(self, drive_cycle_id: int) -> list[LiveSample]:
+    async def get_samples_in_drive_cycle(
+        self, drive_cycle_id: uuid.UUID
+    ) -> list[LiveSample]:
         """Return sample metrics for a given drive cycle, ordered by timestamp ascending."""
 
         if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, text
@@ -36,7 +37,7 @@ class Vehicle(Base):
 class DriveCycle(Base):
     __tablename__ = "drive_cycle"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
@@ -129,10 +130,10 @@ class FreezeFrame(Metrics):
 
     __tablename__ = "freeze_frame"
 
-    def __init__(self, *, dtc_id: int, **data: float):
+    def __init__(self, *, dtc_id: uuid.UUID, **data: float):
         super().__init__(dtc_id=dtc_id, **_parse_metrics(data))
 
-    dtc_id: Mapped[int] = mapped_column(ForeignKey("dtc.id"), index=True)
+    dtc_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dtc.id"), index=True)
 
 
 class Dtc(Base):
@@ -140,7 +141,7 @@ class Dtc(Base):
 
     __tablename__ = "dtc"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     vin: Mapped[str] = mapped_column(ForeignKey("vehicle.vin"), index=True)
     code: Mapped[str] = mapped_column(String(5), index=True)
     description: Mapped[str | None] = mapped_column(String(100))

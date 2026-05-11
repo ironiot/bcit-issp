@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from aiohttp import ClientSession
 from db.model import DriveCycle, Dtc, FreezeFrame, LiveSample, Vehicle, func
@@ -23,7 +24,7 @@ class DBWriter:
         self.http_client = http_client
 
         self.vin: str | None = None
-        self.active_drive_cycle_id: int | None = None
+        self.active_drive_cycle_id: uuid.UUID | None = None
         self.samples_buffer: list[LiveSample] = []
         self.new_dtcs: list[Dtc] = []
 

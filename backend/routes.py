@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
+from uuid import UUID
 
 from db.reader import DBReader
 from fastapi import APIRouter, Request
@@ -16,7 +17,7 @@ async def get_db_reader(request: Request):
 
 
 @router.get("/data/samples/drive_cycle/{id}")
-async def get_sample_data(id: int, request: Request, fields: str = ""):
+async def get_sample_data(id: UUID, request: Request, fields: str = ""):
     """
     Gets sample data for a given drive cycle, then filters it to only include the given fields.
     Returns a json list of dicts, where each dict represents a sample and only includes the requested fields
@@ -129,7 +130,7 @@ async def get_vehicles(request: Request):
 
 
 @router.get("/data/drive_cycle_stats/{drive_cycle_id}")
-async def get_drive_cycle_stats(drive_cycle_id: int, request: Request):
+async def get_drive_cycle_stats(drive_cycle_id: UUID, request: Request):
     async with get_db_reader(request) as reader:
         stats = await reader.get_drive_cycle_stats(drive_cycle_id=drive_cycle_id)
 
