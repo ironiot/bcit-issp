@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Mapping
 
 from db.model import DriveCycle, Dtc, LiveSample, Vehicle
 from sqlalchemy import case, func, select
@@ -109,10 +108,12 @@ class DBReader:
 
         return await self.session.get(Vehicle, vin)
 
-    async def get_drive_cycle_stats(
-        self, drive_cycle_id: int
-    ) -> Mapping[str, float | None]:
-        """Return aggregated stats for a drive cycle."""
+    async def get_drive_cycle_stats(self, drive_cycle_id: int) -> dict:
+        """Return stats for a drive cycle.
+        -  distance travelled
+        -  dtcs during the drive cycle
+        -  average, min and max for each of the aggregatable metrics
+        """
 
         if not (drive := await self.session.get(DriveCycle, drive_cycle_id)):
             raise QueryError(f"Drive cycle not found: {drive_cycle_id}")
@@ -120,28 +121,35 @@ class DBReader:
         if not (samples := await self._get_samples_in_drive_cycle(drive)):
             raise QueryError(f"No samples found for drive cycle: {drive_cycle_id}")
 
+        if (distance := drive.distance) is None:
+            distance = calculate_distance(samples)
+
+        dtcs = await self.get_dtcs(drive.vin)
+
         aggregated_metrics = await self._get_aggregated_metrics(
             vin=drive.vin,
             start_time=drive.start_time,
             end_time=drive.end_time,
         )
+        avgs = {
+            metric: getattr(aggregated_metrics, f"avg_{metric}")
+            for metric in _AGGREGATABLE_METRICS
+        }
+        mins = {
+            metric: getattr(aggregated_metrics, f"min_{metric}")
+            for metric in _AGGREGATABLE_METRICS
+        }
+        maxes = {
+            metric: getattr(aggregated_metrics, f"max_{metric}")
+            for metric in _AGGREGATABLE_METRICS
+        }
+        metrics = {
+            metric: {"min": mins[metric], "avg": avgs[metric], "max": maxes[metric]}
+            for metric in _AGGREGATABLE_METRICS
+        }
 
-        if (distance := drive.distance) is None:
-            distance = calculate_distance(samples)
-
-        stats = {"distance": distance}
-        stats.update({
-            f"avg_{metric}": getattr(aggregated_metrics, f"avg_{metric}")
-            for metric in _AGGREGATABLE_METRICS
-        })
-        stats.update({
-            f"max_{metric}": getattr(aggregated_metrics, f"max_{metric}")
-            for metric in _AGGREGATABLE_METRICS
-        })
-        stats.update({
-            f"min_{metric}": getattr(aggregated_metrics, f"min_{metric}")
-            for metric in _AGGREGATABLE_METRICS
-        })
+        stats: dict = {"distance": distance, "dtcs": dtcs}
+        stats.update(metrics)
         return stats
 
     async def get_drive_cycles(
