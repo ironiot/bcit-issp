@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Mapping
 
 from db.model import DriveCycle, Dtc, LiveSample, Vehicle
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -18,9 +18,89 @@ class DBReader:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all_vehicles(self) -> list[Vehicle]:
-        """Return all known vehicles."""
+    async def get_vehicles(self) -> list[dict]:
+        """Return all vehicles, including info (vehicle table) and these stats:
+        - first and last measure timestamp
+        - total number of DTCs
+        - active DTC codes
+        - number of drive cycles
+        - distance travelled
+        """
 
+        if not (vehicles := await self._get_vehicles()):
+            return []
+
+        # For each vehicle, we get:
+
+        # 1. first and last measure
+        timestamps_res = await self.session.execute(
+            select(
+                LiveSample.vin,
+                func.min(LiveSample.timestamp).label("first_measure"),
+                func.max(LiveSample.timestamp).label("last_measure"),
+            ).group_by(LiveSample.vin)
+        )
+        timestamps_map = {row.vin: row for row in timestamps_res}
+
+        # 2. total DTC count, active DTC codes
+        dtcs_res = await self.session.execute(
+            select(
+                Dtc.vin,
+                func.count(Dtc.id).label("total_dtcs_count"),
+                func.string_agg(
+                    func.distinct(case((Dtc.cleared_at.is_(None), Dtc.code))), ","
+                ).label("active_dtcs"),
+            ).group_by(Dtc.vin)
+        )
+        dtcs_map = {row.vin: row for row in dtcs_res}
+
+        # 3. Drive cycles count and total distance
+        drives_res = await self.session.execute(
+            select(
+                DriveCycle.vin,
+                func.count(DriveCycle.id).label("drive_cycles_count"),
+                func.sum(DriveCycle.distance).label("distance"),
+            ).group_by(DriveCycle.vin)
+        )
+        drives_map = {row.vin: row for row in drives_res}
+
+        # 4. Calculate distance for active drive cycles
+        # It looks like an N+1 query, but
+        # there should be at most 1 active drive cycle per vehicle, so it should be fine.
+        active_distances = {}
+        for active_drive in await self.get_drive_cycles(active_only=True):
+            samples = await self._get_samples_in_drive_cycle(active_drive)
+            active_distances[active_drive.vin] = calculate_distance(samples)
+
+        # Combine them into a list[{vin, ...info_and_stats}]
+
+        res = []
+        for v in vehicles:
+            timestamps = timestamps_map.get(v.vin)
+            dtcs = dtcs_map.get(v.vin)
+            drives = drives_map.get(v.vin)
+
+            vehicle_dict = {
+                c.name: getattr(v, c.name, None) for c in v.__table__.columns
+            }
+            vehicle_dict.update({
+                "drive_cycles_count": getattr(drives, "drive_cycles_count", 0),
+                "total_dtcs_count": getattr(dtcs, "total_dtcs_count", 0),
+                "active_dtcs": (
+                    getattr(dtcs, "active_dtcs", "").split(",")
+                    if getattr(dtcs, "active_dtcs", None)
+                    else []
+                ),
+                "first_measure": getattr(timestamps, "first_measure", None),
+                "last_measure": getattr(timestamps, "last_measure", None),
+                "distance": getattr(drives, "distance", 0)
+                + active_distances.get(v.vin, 0),
+            })
+            res.append(vehicle_dict)
+
+        return res
+
+    async def _get_vehicles(self) -> list[Vehicle]:
         result = await self.session.scalars(select(Vehicle))
         return list(result.all())
 
@@ -28,54 +108,6 @@ class DBReader:
         """Return a vehicle by VIN, or None if not found."""
 
         return await self.session.get(Vehicle, vin)
-
-    async def get_vehicle_stats(self, vin: str):
-        """Return aggregated stats for a vehicle. Include
-        - number of drive cycles
-        - first measure timestamp
-        - last measure timestamp
-        - total number of DTCs
-        - active DTC codes
-        - measured distance
-        """
-
-        drive_cycles_count = len(await self.get_drive_cycles(vin=vin))
-
-        all_dtcs = await self.get_dtcs(vin=vin)
-        total_dtcs_count = len(all_dtcs)
-        active_dtcs = list(set(dtc.code for dtc in all_dtcs if not dtc.cleared_at))
-
-        first_measure = await self.session.scalar(
-            select(LiveSample.timestamp)
-            .where(LiveSample.vin == vin)
-            .order_by(LiveSample.timestamp.asc())
-        )
-        last_measure = await self.session.scalar(
-            select(LiveSample.timestamp)
-            .where(LiveSample.vin == vin)
-            .order_by(LiveSample.timestamp.desc())
-        )
-
-        distance = (
-            await self.session.scalar(
-                select(func.sum(DriveCycle.distance)).where(DriveCycle.vin == vin)
-            )
-            or 0
-        )
-        # If there are active drive cycles, calculate distance for them as well
-        # This looks like an N+1 query, but in practice there should be at most 1 active drive cycle.
-        for active_drive in await self.get_drive_cycles(vin, active_only=True):
-            samples = await self._get_samples_in_drive_cycle(active_drive)
-            distance += calculate_distance(samples)
-
-        return {
-            "drive_cycles_count": drive_cycles_count,
-            "total_dtcs_count": total_dtcs_count,
-            "active_dtcs": active_dtcs,
-            "first_measure": first_measure,
-            "last_measure": last_measure,
-            "distance": distance,
-        }
 
     async def get_drive_cycle_stats(
         self, drive_cycle_id: int
@@ -114,7 +146,7 @@ class DBReader:
 
     async def get_drive_cycles(
         self,
-        vin: str,
+        vin: str | None = None,
         *,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -126,11 +158,9 @@ class DBReader:
         - active drive cycles only (i.e. not ended)
         """
 
-        stmt = (
-            select(DriveCycle)
-            .where(DriveCycle.vin == vin)
-            .order_by(DriveCycle.start_time.desc())
-        )
+        stmt = select(DriveCycle).order_by(DriveCycle.start_time.desc())
+        if vin:
+            stmt = stmt.where(DriveCycle.vin == vin)
         if start_time:
             stmt = stmt.where(DriveCycle.start_time >= start_time)
         if end_time:

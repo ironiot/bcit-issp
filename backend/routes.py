@@ -125,21 +125,7 @@ async def get_drive_cycles(
 @router.get("/data/vehicles")
 async def get_vehicles(request: Request):
     async with get_db_reader(request) as reader:
-        vehicles = await reader.get_all_vehicles()
-
-    res = [
-        {c.name: getattr(v, c.name, None) for c in v.__table__.columns}
-        for v in vehicles
-    ]
-    return jsonable_encoder(res)
-
-
-@router.get("/data/vehicle_stats/{vin}")
-async def get_vehicle_stats(vin: str, request: Request):
-    async with get_db_reader(request) as reader:
-        stats = await reader.get_vehicle_stats(vin=vin)
-
-    return jsonable_encoder(stats)
+        return await reader.get_vehicles()
 
 
 @router.get("/data/drive_cycle_stats/{drive_cycle_id}")
