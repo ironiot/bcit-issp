@@ -1,54 +1,201 @@
 :root {
-	--bg-primary: #222831;
-	--bg-secondary: #1a1d21;
-	--text-primary: #eeeeee;
-  --text-secondary: #393e46;
-	--accent: #d65a31;
+	--color-bg: #222831;
+	--color-surface: #393e46;
+	--color-accent: #d65a31;
+	--color-text: #eeeeee;
+	--color-text-muted: rgba(238, 238, 238, 0.58);
+	--color-border: rgba(238, 238, 238, 0.12);
+	--color-border-strong: #4a5059;
+	--color-chart-grid: rgba(238, 238, 238, 0.1);
+	--color-chart-axis: rgba(238, 238, 238, 0.55);
+	--color-chart-line: #eeeeee;
+	--color-chart-dtc: #d65a31;
+	--color-error-bg: rgba(214, 90, 49, 0.18);
+	--color-error-border: #d65a31;
+	--color-error-text: #eeeeee;
 
 	font-family: system-ui, sans-serif;
 	line-height: 1.5;
-	color: var(--text-primary);
-	background: var(--bg-primary);
+	color: var(--color-text);
+	background: var(--color-bg);
 }
 
 body {
-  margin: 0;
+	margin: 0;
 }
 
 .app header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--bg-secondary);
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+	padding: 0.75rem 1.25rem;
+	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border-strong);
 }
 
 .app nav {
-  display: flex;
-  gap: 0.75rem;
+	display: flex;
+	gap: 0.75rem;
 }
 
 .app nav a {
-  color: #9aa0a6;
-  text-decoration: none;
+	color: var(--color-text-muted);
+	text-decoration: none;
 }
 
 .app nav a.active,
 .app nav a:hover {
-  color: #fff;
+	color: var(--color-accent);
 }
 
 .app main {
-  padding: 1.25rem;
-  max-width: 960px;
+	padding: 1.25rem;
+	max-width: 960px;
 }
 
 h1 {
-  font-size: 1.5rem;
-  margin-top: 0;
+	font-size: 1.5rem;
+	margin-top: 0;
+	color: var(--color-text);
 }
 
 .muted {
-  color: #9aa0a6;
-  font-size: 0.9rem;
+	color: var(--color-text-muted);
+	font-size: 0.9rem;
+}
+
+.monitors-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.btn-refresh {
+	font: inherit;
+	padding: 0.35rem 0.75rem;
+	border-radius: 6px;
+	border: 1px solid var(--color-accent);
+	background: transparent;
+	color: var(--color-accent);
+	cursor: pointer;
+}
+
+.btn-refresh:hover {
+	background: rgba(214, 90, 49, 0.15);
+	color: var(--color-text);
+}
+
+.error-banner {
+	padding: 0.65rem 0.85rem;
+	border-radius: 6px;
+	background: var(--color-error-bg);
+	border: 1px solid var(--color-error-border);
+	color: var(--color-error-text);
+}
+
+.card {
+	background: var(--color-surface);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 8px;
+	padding: 1rem 1.1rem;
+	margin-bottom: 1rem;
+}
+
+.card h2 {
+	font-size: 1.05rem;
+	margin: 0 0 0.75rem;
+	color: var(--color-text);
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	margin-bottom: 0.75rem;
+}
+
+.field.inline {
+	flex-direction: row;
+	align-items: center;
+	margin-bottom: 0;
+}
+
+.field span {
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+.field select {
+	font: inherit;
+	max-width: 100%;
+	padding: 0.4rem 0.5rem;
+	border-radius: 6px;
+	border: 1px solid var(--color-border-strong);
+	background: var(--color-bg);
+	color: var(--color-text);
+}
+
+.vehicle-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+	gap: 0.75rem 1rem;
+	margin: 0;
+}
+
+.vehicle-grid dt {
+	font-size: 0.75rem;
+	color: var(--color-text-muted);
+	margin: 0;
+}
+
+.vehicle-grid dd {
+	margin: 0.15rem 0 0;
+	font-size: 0.95rem;
+	color: var(--color-text);
+}
+
+.chart-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.chart-toolbar h2 {
+	margin: 0;
+}
+
+.chart-wrap {
+	width: 100%;
+	min-height: 320px;
+}
+
+.dtc-links {
+	margin: 0.75rem 0 0;
+	padding-left: 1.1rem;
+	font-size: 0.9rem;
+}
+
+.dtc-links a {
+	color: var(--color-accent);
+}
+
+.dtc-links a:hover {
+	color: var(--color-text);
+	text-decoration: underline;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
