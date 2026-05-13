@@ -93,7 +93,7 @@ class DBReader:
                 ),
                 "first_measure": getattr(timestamps, "first_measure", None),
                 "last_measure": getattr(timestamps, "last_measure", None),
-                "distance": getattr(drives, "distance", 0)
+                "distance": (getattr(drives, "distance", 0) or 0)
                 + active_distances.get(v.vin, 0),
             })
             res.append(vehicle_dict)
