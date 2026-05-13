@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import classNames from "classnames/bind";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -12,14 +13,18 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { apiGet } from "./api";
+import { apiGet } from "../api";
+import { Card } from "../components/Card";
 import {
 	CHART_METRICS,
 	type DriveCycle,
 	type DtcRow,
 	type SampleRow,
 	type VehicleWithStats,
-} from "./types";
+} from "../types";
+import styles from "./Monitors.module.css";
+
+const cx = classNames.bind(styles);
 
 type ChartMetric = (typeof CHART_METRICS)[number];
 
@@ -158,12 +163,12 @@ export function Monitors() {
 	const activeVehicle = vehicles.find((v) => v.vin === selectedVin);
 
 	return (
-		<div className="monitors">
-			<header className="monitors-header">
+		<div className={cx("monitors")}>
+			<header className={cx("monitorsHeader")}>
 				<h1>Monitors</h1>
 				<button
 					type="button"
-					className="btn-refresh"
+					className={cx("btnRefresh")}
 					onClick={() => loadVehicles()}
 				>
 					Refresh
@@ -171,7 +176,7 @@ export function Monitors() {
 			</header>
 
 			{error ? (
-				<p className="error-banner" role="alert">
+				<p className={cx("errorBanner")} role="alert">
 					{error}
 				</p>
 			) : null}
@@ -181,11 +186,11 @@ export function Monitors() {
 			) : !vehicles.length && !error ? (
 				<p className="muted">No vehicles in the database yet.</p>
 			) : !vehicles.length ? null : (
-				<>
-					<section className="card vehicle-card" aria-label="Vehicle">
+				<div className={cx("cards")}>
+					<Card className={cx("card")} aria-label="Vehicle">
 						<h2>Vehicle</h2>
 						{vehicles.length > 1 ? (
-							<label className="field">
+							<label className={cx("field")}>
 								<span>Select VIN</span>
 								<select
 									value={selectedVin ?? ""}
@@ -201,7 +206,7 @@ export function Monitors() {
 							</label>
 						) : null}
 						{activeVehicle ? (
-							<dl className="vehicle-grid">
+							<dl className={cx("vehicleGrid")}>
 								<div>
 									<dt>VIN</dt>
 									<dd>{activeVehicle.vin}</dd>
@@ -248,14 +253,14 @@ export function Monitors() {
 								</div>
 							</dl>
 						) : null}
-					</section>
+					</Card>
 
-					<section className="card" aria-label="Drive cycle">
+					<Card className={cx("card")} aria-label="Drive cycle">
 						<h2>Drive cycle</h2>
 						{!driveCycles.length ? (
 							<p className="muted">No drive cycles for this vehicle.</p>
 						) : (
-							<label className="field">
+							<label className={cx("field")}>
 								<span>Trip</span>
 								<select
 									value={selectedCycleId ?? ""}
@@ -271,12 +276,12 @@ export function Monitors() {
 								</select>
 							</label>
 						)}
-					</section>
+					</Card>
 
-					<section className="card chart-card" aria-label="Samples chart">
-						<div className="chart-toolbar">
+					<Card className={cx("card")} aria-label="Samples chart">
+						<div className={cx("chartToolbar")}>
 							<h2>Signals</h2>
-							<label className="field inline">
+							<label className={cx("field", "inline")}>
 								<span className="sr-only">Metric</span>
 								<select
 									value={metric}
@@ -296,7 +301,7 @@ export function Monitors() {
 						) : !chartPoints.length ? (
 							<p className="muted">No samples for this drive cycle.</p>
 						) : (
-							<div className="chart-wrap">
+							<div className={cx("chartWrap")}>
 								<ResponsiveContainer width="100%" height={320}>
 									<LineChart
 										data={chartPoints}
@@ -370,7 +375,7 @@ export function Monitors() {
 							</div>
 						)}
 						{cycleDtcs.length > 0 ? (
-							<ul className="dtc-links muted">
+							<ul className={`${cx("dtcLinks")} muted`}>
 								{cycleDtcs.map((d) => (
 									<li key={d.id}>
 										<Link to={`/errors?dtc=${d.id}`}>
@@ -380,8 +385,8 @@ export function Monitors() {
 								))}
 							</ul>
 						) : null}
-					</section>
-				</>
+					</Card>
+				</div>
 			)}
 		</div>
 	);

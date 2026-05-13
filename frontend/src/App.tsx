@@ -1,7 +1,7 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { Config } from "./Config";
 import { Errors } from "./Errors";
-import { Monitors } from "./Monitors";
+import { Monitors } from "./Pages/Monitors";
 
 function Layout() {
 	return (

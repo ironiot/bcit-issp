@@ -1,13 +1,8 @@
 .card {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	width: fit-content;
-
-	padding: 12px;
-	border-radius: 4px;
-	border: 2px solid var(--color-border);
-	background-color: var(--color-surface);
+	padding: 1rem;
+	border-radius: 8px;
+	border: 2px solid var(--color-border-strong);
+	background: var(--color-surface);
 
 	&:hover {
 		border-color: var(--color-text-muted);
