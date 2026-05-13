@@ -36,6 +36,7 @@ export interface DtcRow {
 	freeze_frame: Record<string, unknown> | null;
 }
 
+// TODO: config page to select these
 export const CHART_METRICS = [
 	"rpm",
 	"speed",

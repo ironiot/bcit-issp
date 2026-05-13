@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
 	CartesianGrid,
@@ -47,34 +48,19 @@ function cycleInError(dc: DriveCycle, dtcs: DtcRow[]): boolean {
 }
 
 export function Monitors() {
-	const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
 	const [selectedVin, setSelectedVin] = useState<string | null>(null);
-	const [driveCycles, setDriveCycles] = useState<DriveCycle[]>([]);
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-	const [samples, setSamples] = useState<SampleRow[]>([]);
-	const [vinDtcs, setVinDtcs] = useState<DtcRow[]>([]);
 	const [metric, setMetric] = useState<ChartMetric>("speed");
-	const [loading, setLoading] = useState(true);
-	const [chartLoading, setChartLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
-	const loadVehicles = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const list = await apiGet<VehicleWithStats[]>("/data/vehicles");
-			setVehicles(list);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
-			setVehicles([]);
-		} finally {
-			setLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		void loadVehicles();
-	}, [loadVehicles]);
+	const {
+		data: vehicles = [],
+		isLoading: loading,
+		error: vehiclesError,
+		refetch: loadVehicles,
+	} = useQuery({
+		queryKey: ["vehicles"],
+		queryFn: () => apiGet<VehicleWithStats[]>("/data/vehicles"),
+	});
 
 	useEffect(() => {
 		if (!vehicles.length) {
@@ -86,29 +72,14 @@ export function Monitors() {
 		}
 	}, [vehicles, selectedVin]);
 
-	useEffect(() => {
-		if (!selectedVin) {
-			setDriveCycles([]);
-			return;
-		}
-		let cancelled = false;
-		(async () => {
-			try {
-				const cycles = await apiGet<DriveCycle[]>(
-					`/data/drives_cycles/${encodeURIComponent(selectedVin)}`,
-				);
-				if (cancelled) return;
-				setDriveCycles(cycles);
-			} catch (e) {
-				if (cancelled) return;
-				setError(e instanceof Error ? e.message : String(e));
-				setDriveCycles([]);
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [selectedVin]);
+	const { data: driveCycles = [], error: driveCyclesError } = useQuery({
+		queryKey: ["driveCycles", selectedVin],
+		queryFn: () =>
+			apiGet<DriveCycle[]>(
+				`/data/drives_cycles/${encodeURIComponent(selectedVin!)}`,
+			),
+		enabled: !!selectedVin,
+	});
 
 	useEffect(() => {
 		if (!driveCycles.length) {
@@ -128,40 +99,37 @@ export function Monitors() {
 		[driveCycles, selectedCycleId],
 	);
 
-	useEffect(() => {
-		if (!selectedVin || !selectedCycleId) {
-			setSamples([]);
-			setVinDtcs([]);
-			return;
-		}
-		let cancelled = false;
-		setChartLoading(true);
-		const fields = ["timestamp", ...CHART_METRICS].join(",");
-		const q = new URLSearchParams({ fields });
-		(async () => {
-			try {
-				const [sampleRows, dtcRows] = await Promise.all([
-					apiGet<SampleRow[]>(
-						`/data/samples/drive_cycle/${encodeURIComponent(selectedCycleId)}?${q}`,
-					),
-					apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin)}`),
-				]);
-				if (cancelled) return;
-				setSamples(sampleRows);
-				setVinDtcs(dtcRows);
-			} catch (e) {
-				if (cancelled) return;
-				setError(e instanceof Error ? e.message : String(e));
-				setSamples([]);
-				setVinDtcs([]);
-			} finally {
-				if (!cancelled) setChartLoading(false);
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [selectedVin, selectedCycleId]);
+	const {
+		data: samples = [],
+		isLoading: chartLoading,
+		error: samplesError,
+	} = useQuery({
+		queryKey: ["samples", selectedCycleId],
+		queryFn: () => {
+			const fields = ["timestamp", ...CHART_METRICS].join(",");
+			const q = new URLSearchParams({ fields });
+			return apiGet<SampleRow[]>(
+				`/data/samples/drive_cycle/${encodeURIComponent(selectedCycleId!)}?${q}`,
+			);
+		},
+		enabled: !!selectedCycleId,
+	});
+
+	const { data: vinDtcs = [], error: vinDtcsError } = useQuery({
+		queryKey: ["vinDtcs", selectedVin],
+		queryFn: () =>
+			apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin!)}`),
+		enabled: !!selectedVin,
+	});
+
+	const errorData =
+		vehiclesError || driveCyclesError || samplesError || vinDtcsError;
+	const error =
+		errorData instanceof Error
+			? errorData.message
+			: errorData
+				? String(errorData)
+				: null;
 
 	const chartPoints = useMemo(() => {
 		return samples.map((s) => {
@@ -196,7 +164,7 @@ export function Monitors() {
 				<button
 					type="button"
 					className="btn-refresh"
-					onClick={() => void loadVehicles()}
+					onClick={() => loadVehicles()}
 				>
 					Refresh
 				</button>
