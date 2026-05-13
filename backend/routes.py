@@ -3,7 +3,8 @@ from datetime import datetime
 from uuid import UUID
 
 from db.reader import DBReader
-from fastapi import APIRouter, Request
+from collector import ENGINE_ON_VOLTAGE
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 
 router = APIRouter()
@@ -143,5 +144,15 @@ async def clear_dtcs(request: Request):
     The next collector tick will see MIL/count
     change and emit a 'cleared' DTC event into the DB.
     """
-    ok = await request.app.state.obd.clear_dtcs()
+    # Most ECUs only honor Mode 04 with the engine off. Use the same voltage
+    # threshold the collector uses to decide engine-on, and refuse otherwise
+    # so the user gets a clear error instead of a silent NACK.
+    obd_client = request.app.state.obd
+    voltage = await obd_client.read_voltage()
+    if voltage is not None and voltage > ENGINE_ON_VOLTAGE:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Engine appears to be running (voltage {voltage:.1f}V > {ENGINE_ON_VOLTAGE}V). Turn the engine off and retry.",
+        )
+    ok = await obd_client.clear_dtcs()
     return {"cleared": ok}

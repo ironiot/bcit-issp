@@ -135,10 +135,12 @@ class DBWriter:
     # change on the next tick, but the collector's DTC handling is gated
     # on engine_on. Either poll STATUS even when engine is off, or have
     # the route mark active DTCs cleared directly here.
-    async def write_dtcs(self, dtcs: DTCPoll, new: set[str], cleared: set[str]):
+    async def write_dtcs(
+        self, dtcs: DTCPoll, new: set[str], cleared: set[str]
+    ) -> set[str]:
         if not self.vin:
             log.error("Cannot write DTCs: VIN not set")
-            return
+            return set()
 
         async with self.session_factory() as session:
             existing = set[str]()
@@ -162,6 +164,7 @@ class DBWriter:
             session.add_all(instances=self.new_dtcs)
 
             await session.commit()
+            return {d.code for d in self.new_dtcs}
 
     async def write_freeze(self, freeze: FreezePoll):
         if not (

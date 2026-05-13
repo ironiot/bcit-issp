@@ -68,11 +68,15 @@ async def run(client: OBDClient, db: DBWriter) -> None:
                     new = dtcs.current.keys() - last_dtcs
                     cleared = last_dtcs - dtcs.current.keys()
                     last_dtcs = set(dtcs.current)
+                    inserted: set[str] = set()
                     if new or cleared:
-                        await db.write_dtcs(dtcs, new=new, cleared=cleared)
-                    if new:
+                        inserted = await db.write_dtcs(
+                            dtcs, new=new, cleared=cleared
+                        )
+                    if inserted:
                         freeze = await client.read_freeze()
-                        await db.write_freeze(freeze)
+                        if freeze.triggering_code in inserted:
+                            await db.write_freeze(freeze)
                 last_mil = sample.mil
                 last_dtc_count = sample.dtc_count
             else:  # don't poll anything if engine is off, let the ECU sleep
