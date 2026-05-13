@@ -16,18 +16,11 @@ import {
 import { apiGet } from "@/api";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
-import {
-	CHART_METRICS,
-	type DriveCycle,
-	type DtcRow,
-	type SampleRow,
-	type VehicleInfo,
-} from "@/types";
+import { METRICS, type Metric } from "@/metrics";
+import type { DriveCycle, DtcRow, Sample, VehicleInfo } from "@/types";
 import styles from "./Monitors.module.css";
 
 const cx = classNames.bind(styles);
-
-type ChartMetric = (typeof CHART_METRICS)[number];
 
 function formatTime(iso: string): string {
 	try {
@@ -56,7 +49,7 @@ function cycleInError(dc: DriveCycle, dtcs: DtcRow[]): boolean {
 export function Monitors() {
 	const [selectedVin, setSelectedVin] = useLocalStorage<string>("selected-vin");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-	const [metric, setMetric] = useState<ChartMetric>("speed");
+	const [metric, setMetric] = useState<Metric>("speed");
 
 	const {
 		data: vehicles = [],
@@ -102,9 +95,9 @@ export function Monitors() {
 	} = useQuery({
 		queryKey: ["samples", selectedCycleId],
 		queryFn: () => {
-			const fields = ["timestamp", ...CHART_METRICS].join(",");
+			const fields = ["timestamp", ...METRICS].join(",");
 			const q = new URLSearchParams({ fields });
-			return apiGet<SampleRow[]>(
+			return apiGet<Sample[]>(
 				`/data/samples/drive_cycle/${encodeURIComponent(selectedCycleId!)}?${q}`,
 			);
 		},
@@ -131,7 +124,7 @@ export function Monitors() {
 		return samples.map((s) => {
 			const timeMs = new Date(s.timestamp).getTime();
 			const row: Record<string, number | null> = { timeMs };
-			for (const m of CHART_METRICS) {
+			for (const m of METRICS) {
 				const v = s[m];
 				row[m] = v === undefined || v === null ? null : Number(v);
 			}
@@ -274,9 +267,10 @@ export function Monitors() {
 							<h2>Signals</h2>
 							<label className={cx("field", "inline")}>
 								<span className="sr-only">Metric</span>
+								{/* TODO: dynamically generate options based on selected metrics */}
 								<select
 									value={metric}
-									onChange={(e) => setMetric(e.target.value as ChartMetric)}
+									onChange={(e) => setMetric(e.target.value as Metric)}
 								>
 									<option value="speed">Speed</option>
 									<option value="rpm">RPM</option>

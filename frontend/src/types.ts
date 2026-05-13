@@ -1,3 +1,5 @@
+import type { Metric } from "./metrics";
+
 /**
  * Vehicle row plus aggregates from `GET /data/vehicles`.
  */
@@ -33,19 +35,9 @@ export interface DtcRow {
 	description: string | null;
 	timestamp: string;
 	cleared_at: string | null;
-	freeze_frame: Record<string, unknown> | null;
+	freeze_frame: Metrics | null;
 }
 
-// TODO: config page to select these
-export const CHART_METRICS = [
-	"rpm",
-	"speed",
-	"engine_load",
-	"throttle_pos",
-	"coolant_temp",
-	"map",
-] as const;
+export type Metrics = Record<Metric, number | null>;
 
-export type SampleRow = {
-	timestamp: string;
-} & Partial<Record<(typeof CHART_METRICS)[number], number | null>>;
+export type Sample = { timestamp: string } & Metrics;

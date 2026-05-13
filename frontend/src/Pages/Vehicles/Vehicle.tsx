@@ -1,8 +1,8 @@
 import classNames from "classnames/bind";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
+import { UNITS } from "@/metrics";
 import type { VehicleInfo } from "@/types";
-import units from "@/units";
 import styles from "./Vehicles.module.css";
 
 const cx = classNames.bind(styles);
@@ -30,7 +30,7 @@ export function Vehicle({
 					<tr>
 						<th>Distance</th>
 						<td>
-							{distance.toFixed(1)} {units.distance}
+							{distance.toFixed(1)} {UNITS.distance}
 						</td>
 					</tr>
 					<tr>
