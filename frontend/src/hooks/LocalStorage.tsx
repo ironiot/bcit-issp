@@ -3,41 +3,44 @@ import {
 	type ReactNode,
 	useCallback,
 	useContext,
+	useMemo,
 	useState,
 } from "react";
 
-type LocalStorageKey = "selected-vin";
+// To consolate all keys in one place, prevent typos or inconsistencies
+const keys = ["selected-vin"] as const;
+type LocalStorageKey = (typeof keys)[number];
 
 type LocalStorage = {
-	get: <T>(key: LocalStorageKey, initialValue: T) => T;
+	get: <T>(key: LocalStorageKey) => T | undefined;
 	set: <T>(key: LocalStorageKey, value: T) => void;
 };
 
 const LocalStorageContext = createContext<LocalStorage | null>(null);
 
-// To consolate all keys in one place, prevent typos or inconsistencies
-
 export function LocalStorageProvider({ children }: { children: ReactNode }) {
-	const [storage, setStorage] = useState<Record<string, unknown>>({});
+	const [storage, setStorage] = useState<Record<string, unknown>>(() =>
+		keys.reduce(
+			(acc, key) => {
+				const storedValue = localStorage.getItem(key);
+				if (storedValue !== null) {
+					try {
+						acc[key] = JSON.parse(storedValue);
+					} catch (e) {
+						console.error(`Error parsing localStorage key "${key}":`, e);
+					}
+				}
+				return acc;
+			},
+			{} as Record<string, unknown>,
+		),
+	);
 
 	const get = useCallback(
-		<T,>(key: LocalStorageKey, initialValue: T) => {
+		<T,>(key: LocalStorageKey) => {
 			if (key in storage) {
 				return storage[key] as T;
 			}
-
-			const storedValue = localStorage.getItem(key);
-			if (storedValue !== null) {
-				try {
-					const parsedValue = JSON.parse(storedValue);
-					setStorage((prev) => ({ ...prev, [key]: parsedValue }));
-					return parsedValue as T;
-				} catch (e) {
-					console.error(`Error parsing localStorage key "${key}":`, e);
-				}
-			}
-
-			return initialValue;
 		},
 		[storage],
 	);
@@ -54,12 +57,18 @@ export function LocalStorageProvider({ children }: { children: ReactNode }) {
 	);
 }
 
-export function useLocalStorage() {
+export function useLocalStorage<T = string>(key: LocalStorageKey) {
 	const context = useContext(LocalStorageContext);
 	if (!context) {
 		throw new Error(
 			"useLocalStorage must be used within a LocalStorageProvider",
 		);
 	}
-	return context;
+
+	const { get, set } = context;
+
+	const value = useMemo(() => get<T>(key), [get, key]);
+	const setValue = useCallback((value: T) => set(key, value), [set, key]);
+
+	return [value, setValue] as const;
 }

@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
 import { useLocalStorage } from "@/hooks/LocalStorage";
@@ -11,14 +13,30 @@ export function Vehicles() {
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
-	const { set } = useLocalStorage();
+	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
+
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		// in case localStorage is stale (vehicle no longer exists)
+		if (
+			selectedVin &&
+			vehicles.length > 0 &&
+			!vehicles.some((v) => v.vin === selectedVin)
+		) {
+			selectVin("");
+		}
+	}, [selectedVin, selectVin, vehicles]);
 
 	return (
 		<Grid
 			Item={Vehicle}
 			data={vehicles.map((v) => ({ ...v, key: v.vin }))}
 			itemWidth={300}
-			onClickItem={(vehicle) => set("selected-vin", vehicle.vin)}
+			onClickItem={(vehicle) => {
+				selectVin(vehicle.vin);
+				navigate("/monitors");
+			}}
 		/>
 	);
 }

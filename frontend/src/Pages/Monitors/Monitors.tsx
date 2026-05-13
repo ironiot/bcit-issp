@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { apiGet } from "@/api";
 import { Card } from "@/components/Card";
+import { useLocalStorage } from "@/hooks/LocalStorage";
 import {
 	CHART_METRICS,
 	type DriveCycle,
@@ -53,7 +54,7 @@ function cycleInError(dc: DriveCycle, dtcs: DtcRow[]): boolean {
 }
 
 export function Monitors() {
-	const [selectedVin, setSelectedVin] = useState<string | null>(null);
+	const [selectedVin, setSelectedVin] = useLocalStorage<string>("selected-vin");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
 	const [metric, setMetric] = useState<ChartMetric>("speed");
 
@@ -66,16 +67,6 @@ export function Monitors() {
 		queryKey: ["vehicles"],
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
-
-	useEffect(() => {
-		if (!vehicles.length) {
-			setSelectedVin(null);
-			return;
-		}
-		if (!selectedVin || !vehicles.some((v) => v.vin === selectedVin)) {
-			setSelectedVin(vehicles[0].vin);
-		}
-	}, [vehicles, selectedVin]);
 
 	const { data: driveCycles = [], error: driveCyclesError } = useQuery({
 		queryKey: ["driveCycles", selectedVin],

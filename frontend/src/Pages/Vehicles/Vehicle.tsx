@@ -16,26 +16,28 @@ export function Vehicle({
 	data: { vin, model, distance, last_measure },
 	onClick,
 }: VehicleProps) {
-	const { get } = useLocalStorage();
+	const [selectedVin] = useLocalStorage("selected-vin");
 
 	return (
 		<Card
 			className={cx("vehicle")}
 			onClick={onClick}
-			highlighted={vin === get("selected-vin", "")}
+			highlighted={vin === selectedVin}
 		>
 			<h2>{model}</h2>
 			<table>
-				<tr>
-					<th>Distance</th>
-					<td>
-						{distance.toFixed(1)} {units.distance}
-					</td>
-				</tr>
-				<tr>
-					<th>Last measure</th>
-					{last_measure && <td>{new Date(last_measure).toLocaleString()}</td>}
-				</tr>
+				<tbody>
+					<tr>
+						<th>Distance</th>
+						<td>
+							{distance.toFixed(1)} {units.distance}
+						</td>
+					</tr>
+					<tr>
+						<th>Last measure</th>
+						{last_measure && <td>{new Date(last_measure).toLocaleString()}</td>}
+					</tr>
+				</tbody>
 			</table>
 		</Card>
 	);
