@@ -1,5 +1,5 @@
 # Cloud-OBD2
-Cloud-OBD2
+Cloud-OBD2 is a web application that 
 
 ## Requirements
 To run the application, the following are needed:
@@ -16,12 +16,14 @@ python db/model.py
 ```
 `python` in this case may be called differently (e.g. `py`, `python3`, etc.),
 so run with the appropriate command.
-Then, we can run the backend using
+Then, we can setup and run the backend using
 ```bash
 export BCIT_ISSP_DB_URL=[username]@localhost:5432/postgres
 ./run.sh
 ```
-where we setup the URL for the target of the diagnostic data.
+where we setup the URL for the target database of the diagnostic data.
+This target has to have the same schema setup of [db-schema](docs/schema.png),
+which `python db/model.py` initialises.
 
 As for the frontend, go to the `frontend` directory and run
 ```bash
@@ -29,11 +31,9 @@ npm install
 npm run dev
 ```
 
-## DB Schema
-
-[db-schema](docs/schema.png)
-
 ## TODO
-* Test car voltage for engine on and of states to
-  verify the accuracy of emulator data 
+* Test car voltage for engine on and off states to
+  verify the accuracy of emulator data.
+* Add an argument to `run.sh` specifying the ELM device to listen to.
+* Add the `.env` to `model.py` and add `.env.example` for easy setup.
 
