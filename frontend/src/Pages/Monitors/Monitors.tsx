@@ -13,15 +13,15 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { apiGet } from "../../api";
-import { Card } from "../../components/Card";
+import { apiGet } from "/api";
+import { Card } from "/components/Card";
 import {
 	CHART_METRICS,
 	type DriveCycle,
 	type DtcRow,
 	type SampleRow,
 	type VehicleWithStats,
-} from "../../types";
+} from "/types";
 import styles from "./Monitors.module.css";
 
 const cx = classNames.bind(styles);
