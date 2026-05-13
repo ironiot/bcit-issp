@@ -13,15 +13,15 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { apiGet } from "/api";
-import { Card } from "/components/Card";
+import { apiGet } from "@/api";
+import { Card } from "@/components/Card";
 import {
 	CHART_METRICS,
 	type DriveCycle,
 	type DtcRow,
 	type SampleRow,
-	type VehicleWithStats,
-} from "/types";
+	type VehicleInfo,
+} from "@/types";
 import styles from "./Monitors.module.css";
 
 const cx = classNames.bind(styles);
@@ -64,7 +64,7 @@ export function Monitors() {
 		refetch: loadVehicles,
 	} = useQuery({
 		queryKey: ["vehicles"],
-		queryFn: () => apiGet<VehicleWithStats[]>("/data/vehicles"),
+		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
 	useEffect(() => {

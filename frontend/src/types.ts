@@ -1,7 +1,7 @@
 /**
  * Vehicle row plus aggregates from `GET /data/vehicles`.
  */
-export interface VehicleWithStats {
+export interface VehicleInfo {
 	vin: string;
 	calibration_id: string | null;
 	cvn: string | null;

@@ -2,6 +2,7 @@ import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { Config } from "./Config";
 import { Errors } from "./Errors";
 import { Monitors } from "./Pages/Monitors";
+import { Vehicles } from "./Pages/Vehicles";
 
 function Layout() {
 	return (
@@ -11,6 +12,13 @@ function Layout() {
 				<nav>
 					<NavLink
 						to="/"
+						end
+						className={({ isActive }) => (isActive ? "active" : "")}
+					>
+						Vehicles
+					</NavLink>
+					<NavLink
+						to="/monitors"
 						end
 						className={({ isActive }) => (isActive ? "active" : "")}
 					>
@@ -32,7 +40,8 @@ function Layout() {
 			</header>
 			<main>
 				<Routes>
-					<Route path="/" element={<Monitors />} />
+					<Route path="/" element={<Vehicles />} />
+					<Route path="/monitors" element={<Monitors />} />
 					<Route path="/errors" element={<Errors />} />
 					<Route path="/config" element={<Config />} />
 					<Route path="*" element={<Navigate to="/" replace />} />
