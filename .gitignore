@@ -222,3 +222,4 @@ __marimo__/
 .vscode
 .vite
 node_modules
+*.code-workspace

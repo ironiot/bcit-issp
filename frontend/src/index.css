@@ -1,8 +1,14 @@
 :root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: #e8eaed;
-  background: #121416;
+	--bg-primary: #222831;
+	--bg-secondary: #1a1d21;
+	--text-primary: #eeeeee;
+  --text-secondary: #393e46;
+	--accent: #d65a31;
+
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+	color: var(--text-primary);
+	background: var(--bg-primary);
 }
 
 body {
@@ -14,8 +20,7 @@ body {
   align-items: center;
   gap: 1.5rem;
   padding: 0.75rem 1.25rem;
-  background: #1a1d21;
-  border-bottom: 1px solid #333;
+  background: var(--bg-secondary);
 }
 
 .app nav {

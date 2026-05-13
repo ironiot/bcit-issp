@@ -1,0 +1,21 @@
+.card {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: fit-content;
+
+	padding: 12px;
+	border-radius: 4px;
+	border: 2px solid var(--text-secondary);
+	background-color: var(--bg-secondary);
+
+	&:hover {
+		border-color: var(--text-primary);
+	}
+	&.highlighted {
+		border-color: var(--accent);
+	}
+	&:active {
+		background-color: var(--bg-primary);
+	}
+}

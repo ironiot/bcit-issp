@@ -1,14 +1,14 @@
 import { 
     CartesianGrid, 
     Legend,
-    LineChart, 
     Line, 
+    LineChart, 
     Tooltip, 
     XAxis, 
     YAxis
 } from 'recharts';
 
-// #region Sample data
+// #region Sample data 
 const data = [
   {
     name: 'Page A',
