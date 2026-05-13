@@ -1,8 +1,11 @@
 # Cloud-OBD2
-Cloud-OBD2 is a web application that 
+Cloud-OBD2 is a web application that collects and stores OBD2 data from vehicles
+with data persistence beyond the current session,
+allowing users to obtain diagnostic data (i.e. metrics and errors) from
+past data collection.
 
 ## Requirements
-To run the application, the following are needed:
+To run the application, the following are required:
 * Python
 * Node.js (and `npm`)
 * PostgreSQL
