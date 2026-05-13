@@ -6,16 +6,16 @@
 
 	padding: 12px;
 	border-radius: 4px;
-	border: 2px solid var(--text-secondary);
-	background-color: var(--bg-secondary);
+	border: 2px solid var(--color-border);
+	background-color: var(--color-surface);
 
 	&:hover {
-		border-color: var(--text-primary);
+		border-color: var(--color-text-muted);
 	}
 	&.highlighted {
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 	&:active {
-		background-color: var(--bg-primary);
+		background-color: var(--color-bg);
 	}
 }
