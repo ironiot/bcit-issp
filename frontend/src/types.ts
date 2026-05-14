@@ -7,6 +7,7 @@ export interface VehicleInfo {
 	vin: string;
 	calibration_id: string | null;
 	cvn: string | null;
+	supported_metrics: Metric[];
 	model: string | null;
 	body_type: string | null;
 	fuel_type: string | null;

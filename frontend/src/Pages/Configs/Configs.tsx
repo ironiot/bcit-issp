@@ -1,9 +1,27 @@
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
-import { METRICS } from "@/metrics";
+import { useLocalStorage } from "@/hooks/LocalStorage";
+import type { VehicleInfo } from "@/types";
 import { MetricCard } from "./MetricCard";
 
-const gridData = METRICS.map((metric) => ({ metric, key: metric }));
-
 export function Configs() {
-	return <Grid data={gridData} Item={MetricCard} />;
+	const [selectedVin] = useLocalStorage("selected-vin");
+	const { data: vehicles = [] } = useQuery({
+		queryKey: ["vehicles"],
+		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
+	});
+
+	const data = useMemo(() => {
+		return vehicles
+			.find((v) => v.vin === selectedVin)
+			?.supported_metrics.map((metric) => ({ metric, key: metric }));
+	}, [vehicles, selectedVin]);
+
+	if (!data) {
+		return null;
+	}
+
+	return <Grid data={data} Item={MetricCard} />;
 }

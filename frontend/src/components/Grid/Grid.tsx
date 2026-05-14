@@ -19,9 +19,9 @@ export function Grid<T>({ data, Item, className }: GridProps<T>) {
 
 	return (
 		<div style={style} className={cx("grid", className)}>
-			{data.map((item, index) => (
+			{data.map(({ key, ...item }, index) => (
 				<div
-					key={item.key}
+					key={key}
 					ref={
 						index === 0
 							? (item) => item && setItemWidth(item.offsetWidth)
@@ -29,7 +29,7 @@ export function Grid<T>({ data, Item, className }: GridProps<T>) {
 					}
 					className={cx("item-container")}
 				>
-					<Item {...item} />
+					<Item {...(item as any)} />
 				</div>
 			))}
 		</div>
