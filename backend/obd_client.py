@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -8,6 +9,8 @@ import obd
 OBD_URL = "socket://127.0.0.1:35000"
 
 log = logging.getLogger("obd_client")
+if os.getenv("OBD_DEBUG"):
+    log.setLevel(logging.DEBUG)
 
 
 def _mode(cmd):
@@ -60,6 +63,37 @@ class OBDClient:
         self.conn: obd.OBD | None = None
         self.commands: list = []  # supported mode 01 commands
         self._lock = asyncio.Lock()
+        self._query_errors: dict[str, int] = {}
+        self._pid_null_state: dict[str, bool] = {}
+
+    def _query(self, cmd, force: bool = False) -> "obd.OBDResponse | None":
+        """Wraps conn.query: logs raw response at DEBUG, swallows exceptions.
+
+        Returns None on exception; caller should handle. Tracks null-state
+        transitions per PID so we get a log line the first time a PID goes
+        null (or recovers) instead of silent skips every poll.
+        """
+        try:
+            r = self.conn.query(cmd, force=force)
+        except Exception:
+            log.exception("query %s raised", cmd.name)
+            self._query_errors[cmd.name] = self._query_errors.get(cmd.name, 0) + 1
+            return None
+        if log.isEnabledFor(logging.DEBUG):
+            msgs = [bytes(m.data).hex() for m in (r.messages or [])]
+            log.debug("query %s value=%r messages=%s", cmd.name, r.value, msgs)
+        self._track_null(cmd.name, r.is_null())
+        return r
+
+    def _track_null(self, name: str, is_null: bool) -> None:
+        prev = self._pid_null_state.get(name)
+        self._pid_null_state[name] = is_null
+        if prev is None or prev == is_null:
+            return
+        if is_null:
+            log.warning("pid %s started returning null", name)
+        else:
+            log.info("pid %s recovered", name)
 
     async def connect(self) -> None:
         async with self._lock:
@@ -82,7 +116,17 @@ class OBDClient:
         self.conn = obd.OBD(self.port, fast=False, timeout=2, baudrate=38400)
         if not self.conn.is_connected():
             raise ConnectionError(f"failed to open {self.port}")
-        log.info("connected, protocol=%s", self.conn.protocol_name())
+        log.info(
+            "connected, protocol=%s (id=%s)",
+            self.conn.protocol_name(),
+            self.conn.protocol_id(),
+        )
+        ver = self._query(obd.commands.ELM_VERSION, force=True)
+        if ver and not ver.is_null():
+            log.info("ELM version: %s", ver.value)
+        volt = self._query(obd.commands.ELM_VOLTAGE, force=True)
+        if volt and not volt.is_null():
+            log.info("battery voltage: %s", volt.value)
         self.commands = sorted(
             (c for c in self.conn.supported_commands if _mode(c) == b"01"),
             key=lambda c: c.name,
@@ -111,11 +155,11 @@ class OBDClient:
             log.info("VIN is null")
             return None
 
-        r_cid = self.conn.query(obd.commands.CALIBRATION_ID, force=True)
-        cid = r_cid.value.decode() if r_cid.value else None
+        r_cid = self._query(obd.commands.CALIBRATION_ID, force=True)
+        cid = r_cid.value.decode() if r_cid and r_cid.value else None
 
-        r_cvn = self.conn.query(obd.commands.CVN, force=True)
-        cvn = str(r_cvn.value) if r_cvn.value else None
+        r_cvn = self._query(obd.commands.CVN, force=True)
+        cvn = str(r_cvn.value) if r_cvn and r_cvn.value else None
 
         supported_metrics = [c.name.lower() for c in self.commands]
 
@@ -131,8 +175,8 @@ class OBDClient:
     def _read_vin_sync(self) -> str | None:
         # OBD's VIN decoding is broken, DIY
 
-        r = self.conn.query(obd.commands.VIN, force=True)
-        if not r.messages:
+        r = self._query(obd.commands.VIN, force=True)
+        if r is None or not r.messages:
             return None
 
         payload = bytearray()
@@ -149,8 +193,8 @@ class OBDClient:
             return await asyncio.to_thread(self._read_voltage_sync)
 
     def _read_voltage_sync(self) -> float | None:
-        r = self.conn.query(obd.commands.ELM_VOLTAGE, force=True)
-        if r.is_null():
+        r = self._query(obd.commands.ELM_VOLTAGE, force=True)
+        if r is None or r.is_null():
             return None
         mag = getattr(r.value, "magnitude", r.value)
         try:
@@ -165,8 +209,8 @@ class OBDClient:
     def _read_live_sync(self) -> SamplePoll:
         result = SamplePoll(ts=utcnow())
         for cmd in self.commands:
-            r = self.conn.query(cmd)
-            if r.is_null():
+            r = self._query(cmd)
+            if r is None or r.is_null():
                 continue
             # STATUS (mode 01 PID 0x01) returns a namedtuple.
             # Pull MIL + DTC count off it so the collector can detect changes
@@ -195,8 +239,8 @@ class OBDClient:
         cmd = obd.commands.GET_DTC
         if not self.conn.supports(cmd):
             return result
-        r = self.conn.query(cmd)
-        if not r.is_null() and r.value:
+        r = self._query(cmd)
+        if r and not r.is_null() and r.value:
             for code, desc in r.value:
                 log.info("dtc %s %s", code, desc)
                 result.current[code] = desc
@@ -207,8 +251,8 @@ class OBDClient:
             return await asyncio.to_thread(self._clear_dtcs_sync)
 
     def _clear_dtcs_sync(self) -> bool:
-        r = self.conn.query(obd.commands.CLEAR_DTC)
-        return not r.is_null()
+        r = self._query(obd.commands.CLEAR_DTC)
+        return r is not None and not r.is_null()
 
     async def read_freeze(self) -> FreezePoll:
         async with self._lock:
@@ -216,8 +260,8 @@ class OBDClient:
 
     def _read_freeze_sync(self) -> FreezePoll:
         result = FreezePoll(ts=utcnow())
-        frame = self.conn.query(obd.commands.FREEZE_DTC, force=True)
-        if not frame.is_null() and frame.value:
+        frame = self._query(obd.commands.FREEZE_DTC, force=True)
+        if frame and not frame.is_null() and frame.value:
             log.info("freeze frame for %s", frame.value)
             if isinstance(frame.value, tuple):
                 result.triggering_code = frame.value[0]
@@ -227,8 +271,8 @@ class OBDClient:
             if not obd.commands.has_name(dtc_name):
                 continue
             cmd = obd.commands[dtc_name]
-            r = self.conn.query(cmd)
-            if r.is_null():
+            r = self._query(cmd)
+            if r is None or r.is_null():
                 continue
             mag = getattr(r.value, "magnitude", r.value)
             try:
