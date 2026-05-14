@@ -1,3 +1,22 @@
+import {
+	AccessTime,
+	Air,
+	Bolt,
+	Cloud,
+	Co2,
+	Compress,
+	GasMeter,
+	History,
+	LocalGasStation,
+	Percent,
+	Scale,
+	Speed,
+	type SvgIconComponent,
+	TaxiAlert,
+	Thermostat,
+	WaterDrop,
+} from "@mui/icons-material";
+
 export const UNITS = {
 	distance: "km",
 	speed: "km/h",
@@ -51,5 +70,31 @@ export const METRICS = [
 	"barometric_pressure",
 	"distance_w_mil",
 ] as const;
+
+export const METRIC_ICONS = {
+	rpm: Speed,
+	speed: Speed,
+	engine_load: Scale,
+	throttle_pos: Percent,
+	run_time: AccessTime,
+	maf: Air,
+	map: Compress,
+	barometric_pressure: Cloud,
+	fuel_level: LocalGasStation,
+	short_fuel_trim_1: GasMeter,
+	long_fuel_trim_1: GasMeter,
+	short_fuel_trim_2: GasMeter,
+	long_fuel_trim_2: GasMeter,
+	o2_b1s1: Co2,
+	o2_b1s2: Co2,
+	o2_b2s1: Co2,
+	o2_b2s2: Co2,
+	coolant_temp: WaterDrop,
+	intake_temp: Thermostat,
+	ambient_air_temp: Thermostat,
+	timing_advance: History,
+	control_module_voltage: Bolt,
+	distance_w_mil: TaxiAlert,
+} satisfies Record<Metric, SvgIconComponent>;
 
 export type Metric = (typeof METRICS)[number];
