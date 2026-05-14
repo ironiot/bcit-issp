@@ -1,4 +1,5 @@
 import { SvgIcon } from "@mui/material";
+import classNames from "classnames/bind";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import {
@@ -8,6 +9,9 @@ import {
 	METRICS_LABELS,
 	type Metric,
 } from "@/metrics";
+import styles from "./Configs.module.css";
+
+const cx = classNames.bind(styles);
 
 type Props = { metric: Metric };
 export function MetricCard({ metric }: Props) {
@@ -28,20 +32,12 @@ export function MetricCard({ metric }: Props) {
 
 	return (
 		<Card
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				alignItems: "center",
-				justifyContent: "center",
-				width: 96,
-				height: 160,
-				textAlign: "center",
-			}}
+			className={cx("metric-card")}
 			highlighted={selectedMetrics[metric]}
 			onClick={toggleSelection}
 		>
-			<SvgIcon component={METRIC_ICONS[metric]} style={{ fontSize: 48 }} />
-			<h3>{METRICS_LABELS[metric]}</h3>
+			<SvgIcon component={METRIC_ICONS[metric]} style={{ fontSize: 32 }} />
+			<h4>{METRICS_LABELS[metric]}</h4>
 		</Card>
 	);
 }

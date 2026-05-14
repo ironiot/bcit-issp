@@ -1,1 +1,1 @@
-export { MetricsSelection as Configs } from "./MetricsSelection";
+export { Configs } from "./Configs";

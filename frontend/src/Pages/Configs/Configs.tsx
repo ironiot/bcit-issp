@@ -4,6 +4,6 @@ import { MetricCard } from "./MetricCard";
 
 const gridData = METRICS.map((metric) => ({ metric, key: metric }));
 
-export function MetricsSelection() {
+export function Configs() {
 	return <Grid data={gridData} Item={MetricCard} />;
 }
