@@ -35,9 +35,10 @@ export interface DtcRow {
 	description: string | null;
 	timestamp: string;
 	cleared_at: string | null;
-	freeze_frame: Metrics | null;
+	freeze_frame: SampleData | null;
 }
 
-export type Metrics = Record<Metric, number | null>;
+export type SampleData = Record<Metric, number | null>;
 
-export type Sample = { timestamp: string } & Metrics;
+// partial because the configs page filter which metrics to query
+export type Sample = { timestamp: string } & Partial<SampleData>;

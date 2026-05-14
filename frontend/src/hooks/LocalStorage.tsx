@@ -6,46 +6,46 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import type { Metric } from "@/metrics";
 
-// To consolate all keys in one place, prevent typos or inconsistencies
-const keys = ["selected-vin"] as const;
-type LocalStorageKey = (typeof keys)[number];
+type Storage = {
+	"selected-vin": string;
+	"selected-metrics": Record<Metric, boolean>;
+};
+type Key = keyof Storage;
+
+const KEYS = ["selected-vin", "selected-metrics"] as const satisfies Key[];
 
 type LocalStorage = {
-	get: <T>(key: LocalStorageKey) => T | undefined;
-	set: <T>(key: LocalStorageKey, value: T) => void;
+	get: <K extends Key>(key: K) => Storage[K] | undefined;
+	set: <K extends Key>(key: K, value: Storage[K]) => void;
 };
 
 const LocalStorageContext = createContext<LocalStorage | null>(null);
 
 export function LocalStorageProvider({ children }: { children: ReactNode }) {
-	const [storage, setStorage] = useState<Record<string, unknown>>(() =>
-		keys.reduce(
-			(acc, key) => {
-				const storedValue = localStorage.getItem(key);
-				if (storedValue !== null) {
-					try {
-						acc[key] = JSON.parse(storedValue);
-					} catch (e) {
-						console.error(`Error parsing localStorage key "${key}":`, e);
-					}
+	const [storage, setStorage] = useState(() =>
+		KEYS.reduce<Partial<Storage>>((acc, key) => {
+			const storedValue = localStorage.getItem(key);
+			if (storedValue !== null) {
+				try {
+					acc[key] = JSON.parse(storedValue);
+				} catch (e) {
+					console.error(`Error parsing localStorage key "${key}":`, e);
 				}
-				return acc;
-			},
-			{} as Record<string, unknown>,
-		),
+			}
+			return acc;
+		}, {}),
 	);
 
 	const get = useCallback(
-		<T,>(key: LocalStorageKey) => {
-			if (key in storage) {
-				return storage[key] as T;
-			}
+		<K extends Key>(key: K) => {
+			return storage[key] as Storage[K] | undefined;
 		},
 		[storage],
 	);
 
-	const set = useCallback(<T,>(key: LocalStorageKey, value: T) => {
+	const set = useCallback(<K extends Key>(key: K, value: Storage[K]) => {
 		setStorage((prev) => ({ ...prev, [key]: value }));
 		localStorage.setItem(key, JSON.stringify(value));
 	}, []);
@@ -57,7 +57,7 @@ export function LocalStorageProvider({ children }: { children: ReactNode }) {
 	);
 }
 
-export function useLocalStorage<T = string>(key: LocalStorageKey) {
+export function useLocalStorage<K extends Key>(key: K) {
 	const context = useContext(LocalStorageContext);
 	if (!context) {
 		throw new Error(
@@ -67,8 +67,11 @@ export function useLocalStorage<T = string>(key: LocalStorageKey) {
 
 	const { get, set } = context;
 
-	const value = useMemo(() => get<T>(key), [get, key]);
-	const setValue = useCallback((value: T) => set(key, value), [set, key]);
+	const value = useMemo(() => get(key), [get, key]);
+	const setValue = useCallback(
+		(value: Storage[K]) => set(key, value),
+		[set, key],
+	);
 
 	return [value, setValue] as const;
 }

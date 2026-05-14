@@ -7,7 +7,7 @@ import styles from "./Vehicles.module.css";
 
 const cx = classNames.bind(styles);
 
-type VehicleProps = {
+type Props = {
 	data: VehicleInfo;
 	onClick?: () => void;
 };
@@ -15,7 +15,7 @@ type VehicleProps = {
 export function VehicleCard({
 	data: { vin, model, distance, last_measure },
 	onClick,
-}: VehicleProps) {
+}: Props) {
 	const [selectedVin] = useLocalStorage("selected-vin");
 
 	return (

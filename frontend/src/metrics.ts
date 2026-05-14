@@ -43,7 +43,7 @@ export const UNITS = {
 	barometric_pressure: "kPa",
 	distance_w_mil: "km",
 	// distance is in some stats but not live samples, that's why it's separate
-} satisfies Record<Metric | "distance", string>;
+} as const satisfies Record<Metric | "distance", string>;
 
 export const METRICS = [
 	"rpm",
@@ -95,6 +95,15 @@ export const METRIC_ICONS = {
 	timing_advance: History,
 	control_module_voltage: Bolt,
 	distance_w_mil: TaxiAlert,
-} satisfies Record<Metric, SvgIconComponent>;
+} as const satisfies Record<Metric, SvgIconComponent>;
+
+export const DEFAULT_ENABLED_METRICS = [
+	"speed",
+	"rpm",
+	"engine_load",
+	"throttle_pos",
+	"coolant_temp",
+	"map",
+] as const satisfies Metric[];
 
 export type Metric = (typeof METRICS)[number];

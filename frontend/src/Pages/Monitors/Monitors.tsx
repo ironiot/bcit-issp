@@ -47,7 +47,7 @@ function cycleInError(dc: DriveCycle, dtcs: DtcRow[]): boolean {
 }
 
 export function Monitors() {
-	const [selectedVin, setSelectedVin] = useLocalStorage<string>("selected-vin");
+	const [selectedVin, setSelectedVin] = useLocalStorage("selected-vin");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
 	const [metric, setMetric] = useState<Metric>("speed");
 
