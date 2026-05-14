@@ -2,10 +2,19 @@ import logging
 import uuid
 
 from aiohttp import ClientSession
-from db.model import DriveCycle, Dtc, FreezeFrame, LiveSample, Vehicle, func
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from db.model import (
+    COLLECTED_METRICS,
+    DriveCycle,
+    Dtc,
+    FreezeFrame,
+    LiveSample,
+    Vehicle,
+    func,
+)
 from db.reader import DBReader, calculate_distance
 from obd_client import DTCPoll, FreezePoll, OBDVehicleInfo, SamplePoll
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from vpic import fetch_vpic_data
 
 log = logging.getLogger("db_writer")
@@ -31,8 +40,16 @@ class DBWriter:
     async def write_vehicle(self, info: OBDVehicleInfo):
         self.vin = info.vin
 
+        supported_metrics = [
+            m for m in info.supported_metrics if m in COLLECTED_METRICS
+        ]
+
         async with self.session_factory() as session:
             if vehicle := await session.get(Vehicle, info.vin):
+                vehicle.calibration_id = info.calibration_id
+                vehicle.cvn = info.cvn
+                vehicle.supported_metrics = supported_metrics
+                await session.commit()
                 return
 
             vpic_data = await fetch_vpic_data(self.http_client, info.vin)
@@ -40,6 +57,7 @@ class DBWriter:
                 vin=info.vin,
                 calibration_id=info.calibration_id,
                 cvn=info.cvn,
+                supported_metrics=supported_metrics,
                 **(vpic_data or {}),
             )
             session.add(vehicle)

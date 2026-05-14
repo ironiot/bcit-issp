@@ -23,6 +23,7 @@ class OBDVehicleInfo:
     vin: str
     calibration_id: str | None = None
     cvn: str | None = None
+    supported_metrics: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -116,7 +117,14 @@ class OBDClient:
         r_cvn = self.conn.query(obd.commands.CVN, force=True)
         cvn = str(r_cvn.value) if r_cvn.value else None
 
-        vehicle = OBDVehicleInfo(vin=vin, calibration_id=cid, cvn=cvn)
+        supported_metrics = [c.name.lower() for c in self.commands]
+
+        vehicle = OBDVehicleInfo(
+            vin=vin,
+            calibration_id=cid,
+            cvn=cvn,
+            supported_metrics=supported_metrics,
+        )
         log.info("vehicle info: %s", vehicle)
         return vehicle
 

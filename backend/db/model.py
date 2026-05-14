@@ -6,7 +6,7 @@ import os
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, text
+from sqlalchemy import DateTime, ForeignKey, String, text, ARRAY
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -25,6 +25,9 @@ class Vehicle(Base):
     vin: Mapped[str] = mapped_column(String(17), primary_key=True)
     calibration_id: Mapped[str | None] = mapped_column(String(20))
     cvn: Mapped[str | None] = mapped_column(String(20))
+    supported_metrics: Mapped[list[str]] = mapped_column(
+        ARRAY(String), server_default="{}"
+    )
 
     # VPIC data: query NHTSA VPIC API for these fields before inserting a new vehicle
     model: Mapped[str | None] = mapped_column(String(50))
@@ -83,32 +86,35 @@ class Metrics(Base):
     distance_w_mil: Mapped[float | None]
 
 
+COLLECTED_METRICS = [
+    "rpm",
+    "speed",
+    "engine_load",
+    "throttle_pos",
+    "maf",
+    "map",
+    "short_fuel_trim_1",
+    "short_fuel_trim_2",
+    "long_fuel_trim_1",
+    "long_fuel_trim_2",
+    "o2_b1s1",
+    "o2_b2s1",
+    "o2_b1s2",
+    "o2_b2s2",
+    "timing_advance",
+    "run_time",
+    "coolant_temp",
+    "intake_temp",
+    "ambient_air_temp",
+    "control_module_voltage",
+    "fuel_level",
+    "barometric_pressure",
+    "distance_w_mil",
+]
+
+
 def _parse_metrics(data: dict[str, float]):
-    return {
-        "rpm": data.get("RPM"),
-        "speed": data.get("SPEED"),
-        "engine_load": data.get("ENGINE_LOAD"),
-        "throttle_pos": data.get("THROTTLE_POS"),
-        "maf": data.get("MAF"),
-        "map": data.get("MAP"),
-        "short_fuel_trim_1": data.get("SHORT_FUEL_TRIM_1"),
-        "short_fuel_trim_2": data.get("SHORT_FUEL_TRIM_2"),
-        "long_fuel_trim_1": data.get("LONG_FUEL_TRIM_1"),
-        "long_fuel_trim_2": data.get("LONG_FUEL_TRIM_2"),
-        "o2_b1s1": data.get("O2_B1S1"),
-        "o2_b2s1": data.get("O2_B2S1"),
-        "o2_b1s2": data.get("O2_B1S2"),
-        "o2_b2s2": data.get("O2_B2S2"),
-        "timing_advance": data.get("TIMING_ADVANCE"),
-        "run_time": data.get("RUN_TIME"),
-        "coolant_temp": data.get("COOLANT_TEMP"),
-        "intake_temp": data.get("INTAKE_TEMP"),
-        "ambient_air_temp": data.get("AMBIENT_AIR_TEMP"),
-        "control_module_voltage": data.get("CONTROL_MODULE_VOLTAGE"),
-        "fuel_level": data.get("FUEL_LEVEL"),
-        "barometric_pressure": data.get("BAROMETRIC_PRESSURE"),
-        "distance_w_mil": data.get("DISTANCE_W_MIL"),
-    }
+    return {metric: data.get(metric.upper(), None) for metric in COLLECTED_METRICS}
 
 
 class LiveSample(Metrics):
