@@ -1,27 +1,70 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import classNames from "classnames/bind";
+import { useEffect, useMemo } from "react";
 import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
 import { useLocalStorage } from "@/hooks/LocalStorage";
+import type { Metric } from "@/metrics";
 import type { VehicleInfo } from "@/types";
+import styles from "./Configs.module.css";
+
+const cx = classNames.bind(styles);
+
 import { MetricCard } from "./MetricCard";
+import { VehicleCard } from "./VehicleCard";
 
 export function Configs() {
-	const [selectedVin] = useLocalStorage("selected-vin");
 	const { data: vehicles = [] } = useQuery({
 		queryKey: ["vehicles"],
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
-	const data = useMemo(() => {
-		return vehicles
-			.find((v) => v.vin === selectedVin)
-			?.supported_metrics.map((metric) => ({ metric, key: metric }));
+	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
+
+	useEffect(() => {
+		// in case localStorage is stale (vehicle no longer exists)
+		if (
+			selectedVin &&
+			vehicles.length > 0 &&
+			!vehicles.some((v) => v.vin === selectedVin)
+		) {
+			selectVin("");
+		}
+	}, [selectedVin, selectVin, vehicles]);
+
+	const supportedMetrics = useMemo(() => {
+		return vehicles.find((v) => v.vin === selectedVin)?.supported_metrics;
 	}, [vehicles, selectedVin]);
 
-	if (!data) {
-		return null;
-	}
+	const [selectedMetrics, selectMetrics] = useLocalStorage("selected-metrics");
 
-	return <Grid data={data} Item={MetricCard} />;
+	useEffect(() => {
+		if (!selectedMetrics || !supportedMetrics) {
+			return;
+		}
+		// Remove unsupported metrics from selectedMetrics
+		// (when user switches to a different vehicle with different supported metrics)
+		const filteredMetrics = Object.fromEntries(
+			Object.entries(selectedMetrics).map(([metric, isSelected]) => [
+				metric,
+				isSelected && supportedMetrics.includes(metric as any),
+			]),
+		) as Record<Metric, boolean>;
+		selectMetrics(filteredMetrics);
+	}, [supportedMetrics, selectMetrics, selectedMetrics]);
+
+	return (
+		<div className={cx("configs")}>
+			<Grid
+				Item={VehicleCard}
+				data={vehicles.map((v) => ({ ...v, key: v.vin }))}
+			/>
+			{supportedMetrics && (
+				<Grid
+					Item={MetricCard}
+					data={supportedMetrics?.map((metric) => ({ metric, key: metric }))}
+				/>
+			)}
+		</div>
+	);
 }
