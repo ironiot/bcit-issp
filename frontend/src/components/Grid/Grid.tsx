@@ -1,40 +1,35 @@
 import classNames from "classnames/bind";
-import { useRef } from "react";
+import { useState } from "react";
 import styles from "./Grid.module.css";
 
 const cx = classNames.bind(styles);
 
 type GridProps<T> = {
 	data: Array<T & { key: string }>;
-	Item: (props: { data: T; onClick?: () => void }) => JSX.Element | null;
-	itemWidth: number;
+	Item: (props: T) => JSX.Element | null;
 	onClickItem?: (item: T) => void;
 	className?: string;
 };
 
-export function Grid<T>({
-	data,
-	Item,
-	onClickItem,
-	itemWidth,
-	className,
-}: GridProps<T>) {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const firstItemRef = useRef<HTMLDivElement>(null);
+export function Grid<T>({ data, Item, className }: GridProps<T>) {
+	const [itemWidth, setItemWidth] = useState<number>();
+	const style = itemWidth
+		? { ["--item-width" as string]: `${itemWidth}px` }
+		: undefined;
 
 	return (
-		<div
-			ref={containerRef}
-			style={{ ["--item-width" as string]: `${itemWidth}px` }}
-			className={cx("grid", className)}
-		>
+		<div style={style} className={cx("grid", className)}>
 			{data.map((item, index) => (
 				<div
 					key={item.key}
-					ref={index === 0 ? firstItemRef : undefined}
+					ref={
+						index === 0
+							? (item) => item && setItemWidth(item.offsetWidth)
+							: undefined
+					}
 					className={cx("item-container")}
 				>
-					<Item data={item} onClick={() => onClickItem?.(item)} />
+					<Item {...item} />
 				</div>
 			))}
 		</div>

@@ -1,4 +1,5 @@
 import classNames from "classnames/bind";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { UNITS } from "@/metrics";
@@ -7,21 +8,22 @@ import styles from "./Vehicles.module.css";
 
 const cx = classNames.bind(styles);
 
-type Props = {
-	data: VehicleInfo;
-	onClick?: () => void;
-};
-
 export function VehicleCard({
-	data: { vin, model, distance, last_measure },
-	onClick,
-}: Props) {
-	const [selectedVin] = useLocalStorage("selected-vin");
+	vin,
+	model,
+	distance,
+	last_measure,
+}: VehicleInfo) {
+	const navigate = useNavigate();
+	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
 
 	return (
 		<Card
 			className={cx("vehicle")}
-			onClick={onClick}
+			onClick={() => {
+				selectVin(vin);
+				navigate("/monitors");
+			}}
 			highlighted={vin === selectedVin}
 		>
 			<h2>{model}</h2>

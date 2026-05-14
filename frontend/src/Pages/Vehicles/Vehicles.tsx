@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
 import { useLocalStorage } from "@/hooks/LocalStorage";
@@ -14,9 +13,6 @@ export function Vehicles() {
 	});
 
 	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
-
-	const navigate = useNavigate();
-
 	useEffect(() => {
 		// in case localStorage is stale (vehicle no longer exists)
 		if (
@@ -32,11 +28,6 @@ export function Vehicles() {
 		<Grid
 			Item={VehicleCard}
 			data={vehicles.map((v) => ({ ...v, key: v.vin }))}
-			itemWidth={300}
-			onClickItem={(vehicle) => {
-				selectVin(vehicle.vin);
-				navigate("/monitors");
-			}}
 		/>
 	);
 }
