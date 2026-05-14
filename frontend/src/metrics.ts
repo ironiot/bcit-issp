@@ -71,6 +71,32 @@ export const METRICS = [
 	"distance_w_mil",
 ] as const;
 
+export const METRICS_LABELS = {
+	rpm: "RPM",
+	speed: "Speed",
+	engine_load: "Engine load",
+	throttle_pos: "Throttle position",
+	maf: "Mass air flow",
+	map: "Manifold absolute pressure",
+	short_fuel_trim_1: "Short fuel trim 1",
+	long_fuel_trim_1: "Long fuel trim 1",
+	short_fuel_trim_2: "Short fuel trim 2",
+	long_fuel_trim_2: "Long fuel trim 2",
+	o2_b1s1: "O₂ Bank 1 Sensor 1",
+	o2_b1s2: "O₂ Bank 1 Sensor 2",
+	o2_b2s1: "O₂ Bank 2 Sensor 1",
+	o2_b2s2: "O₂ Bank 2 Sensor 2",
+	timing_advance: "Timing advance",
+	run_time: "Run time",
+	coolant_temp: "Coolant temperature",
+	intake_temp: "Intake temperature",
+	ambient_air_temp: "Ambient air temperature",
+	control_module_voltage: "Control module voltage",
+	fuel_level: "Fuel level",
+	barometric_pressure: "Barometric pressure",
+	distance_w_mil: "Distance with MIL on",
+} as const satisfies Record<Metric, string>;
+
 export const METRIC_ICONS = {
 	rpm: Speed,
 	speed: Speed,
@@ -97,13 +123,13 @@ export const METRIC_ICONS = {
 	distance_w_mil: TaxiAlert,
 } as const satisfies Record<Metric, SvgIconComponent>;
 
-export const DEFAULT_ENABLED_METRICS = [
+export const DEFAULT_ENABLED_METRICS = new Set<Metric>([
 	"speed",
 	"rpm",
 	"engine_load",
 	"throttle_pos",
 	"coolant_temp",
 	"map",
-] as const satisfies Metric[];
+]);
 
 export type Metric = (typeof METRICS)[number];
