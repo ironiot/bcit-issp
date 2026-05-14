@@ -12,7 +12,7 @@ type VehicleProps = {
 	onClick?: () => void;
 };
 
-export function Vehicle({
+export function VehicleCard({
 	data: { vin, model, distance, last_measure },
 	onClick,
 }: VehicleProps) {

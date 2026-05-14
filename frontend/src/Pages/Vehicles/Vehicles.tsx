@@ -5,7 +5,7 @@ import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import type { VehicleInfo } from "@/types";
-import { Vehicle } from "./Vehicle";
+import { VehicleCard } from "./VehicleCard";
 
 export function Vehicles() {
 	const { data: vehicles = [] } = useQuery({
@@ -30,7 +30,7 @@ export function Vehicles() {
 
 	return (
 		<Grid
-			Item={Vehicle}
+			Item={VehicleCard}
 			data={vehicles.map((v) => ({ ...v, key: v.vin }))}
 			itemWidth={300}
 			onClickItem={(vehicle) => {
