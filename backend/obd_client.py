@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import obd
-#socket://127.0.0.1:35000
-OBD_URL = "/dev/pts/6"
+
+OBD_URL = "socket://127.0.0.1:35000"
 
 log = logging.getLogger("obd_client")
 if os.getenv("OBD_DEBUG"):
