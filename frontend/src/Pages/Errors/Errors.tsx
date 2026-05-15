@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import type { DtcRow, SampleData, VehicleInfo } from "@/types";
 import styles from "./Errors.module.css";
+import { UNITS } from "@/metrics";
 
 export function Errors() {
 
@@ -141,8 +142,11 @@ export function Errors() {
                     {Object.entries(selected.freeze_frame as SampleData).map(
                       ([metric, value]) => (
                         <tr key={metric}>
-                          <td>{metric}</td>
-                          <td>{value === null ? "null" : String(value)}</td>
+                          {value === null || metric === "id" || metric === "dtc_id" ? (
+                            <>     </>
+                          ) : (
+                            <><td>{metric}</td><td>{`${String(value)}${UNITS[metric as keyof typeof UNITS]}`}</td></>
+                          )}
                         </tr>
                       )
                     )}
@@ -181,7 +185,7 @@ export function Errors() {
                 <option value="">-- select vehicle --</option>
                 {vehicles.map((v) => (
                   <option key={v.vin} value={v.vin}>
-                    {v.vin}
+                   
                     {v.model ? ` ${v.model}` : ""}
                   </option>
                 ))}

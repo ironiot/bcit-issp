@@ -29,9 +29,16 @@
     min-height: 620px;
 }
 
-.vehicleCard,
+.vehicleCard {
+    height: 75%;
+}
+
+
+
 .listCard {
+    margin-top: 10px;
     padding: 0.85rem;
+    
 }
 
 .field {
