@@ -1,21 +1,15 @@
 import classNames from "classnames/bind";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { useLocalStorage } from "@/hooks/LocalStorage";
-import { Errors } from "../Errors";
 import { Configs } from "../Configs";
+import { ConfigValidator, useIsConfigMissing } from "../ConfigValidator";
+import { Errors } from "../Errors";
 import { Monitors } from "../Monitors";
 import styles from "./App.module.css";
 
 const cx = classNames.bind(styles);
 
 export function App() {
-	const [selectedVin] = useLocalStorage("selected-vin");
-	const [metricsSelection] = useLocalStorage("metrics-selection");
-
-	const isConfigMissing =
-		!selectedVin ||
-		!metricsSelection ||
-		!Object.values(metricsSelection).some((v) => v);
+	const isConfigMissing = useIsConfigMissing();
 
 	return (
 		<div className={cx("app")}>
@@ -47,8 +41,14 @@ export function App() {
 			<main>
 				<Routes>
 					<Route path="/" element={<Configs />} />
-					<Route path="/monitors" element={<Monitors />} />
-					<Route path="/errors" element={<Errors />} />
+					<Route
+						path="/monitors"
+						element={<ConfigValidator Renderer={Monitors} />}
+					/>
+					<Route
+						path="/errors"
+						element={<ConfigValidator Renderer={Errors} />}
+					/>
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>
 			</main>
