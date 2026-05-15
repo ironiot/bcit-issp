@@ -33,6 +33,8 @@ As for the frontend, go to the `frontend` directory and run
 npm install
 npm run dev
 ```
+The terminal will print a URL (https://localhost:5173 usually)
+where it hosts the frontend.
 
 ## TODO
 * Test car voltage for engine on and off states to
