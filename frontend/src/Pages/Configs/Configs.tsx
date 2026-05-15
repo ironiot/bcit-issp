@@ -10,11 +10,12 @@ import styles from "./Configs.module.css";
 
 const cx = classNames.bind(styles);
 
+import { Button } from "@/components/Button";
 import { MetricCard } from "./MetricCard";
 import { VehicleCard } from "./VehicleCard";
 
 export function Configs() {
-	const { data: vehicles = [] } = useQuery({
+	const { data: vehicles = [], refetch: reloadVehicles } = useQuery({
 		queryKey: ["vehicles"],
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
@@ -29,6 +30,10 @@ export function Configs() {
 			!vehicles.some((v) => v.vin === selectedVin)
 		) {
 			selectVin("");
+		}
+		// auto select if there's only one vehicle
+		else if (vehicles.length === 1) {
+			selectVin(vehicles[0].vin);
 		}
 	}, [selectedVin, selectVin, vehicles]);
 
@@ -45,26 +50,58 @@ export function Configs() {
 		}
 		// Remove unsupported metrics from selectedMetrics
 		// (when user switches to a different vehicle with different supported metrics)
-		const filteredMetrics = Object.fromEntries(
-			Object.entries(metricsSelection).map(([metric, isSelected]) => [
-				metric,
-				isSelected && supportedMetrics.includes(metric as any),
-			]),
-		) as Record<Metric, boolean>;
-		setMetricsSelection(filteredMetrics);
+		if (
+			!Object.entries(metricsSelection)
+				.filter(([_, isSelected]) => isSelected)
+				.every(([metric]) => supportedMetrics.includes(metric as Metric))
+		) {
+			const filteredMetrics = Object.fromEntries(
+				Object.entries(metricsSelection).map(([metric, isSelected]) => [
+					metric,
+					isSelected && supportedMetrics.includes(metric as any),
+				]),
+			) as Record<Metric, boolean>;
+			setMetricsSelection(filteredMetrics);
+		}
 	}, [supportedMetrics, setMetricsSelection, metricsSelection]);
 
 	return (
 		<div className={cx("configs")}>
-			<Grid
-				Item={VehicleCard}
-				data={vehicles.map((v) => ({ ...v, key: v.vin }))}
-			/>
-			{supportedMetrics && (
+			<div className={cx("Select vehicle")}>
+				<div className={cx("header")}>
+					<div>
+						<h2>Vehicle selection</h2>
+						<span>Select which vehicle to monitor and display data for</span>
+					</div>
+					<Button
+						text="Refresh"
+						onClick={() => reloadVehicles()}
+						disabled={!selectedVin}
+					/>
+				</div>
 				<Grid
-					Item={MetricCard}
-					data={supportedMetrics?.map((metric) => ({ metric, key: metric }))}
+					Item={VehicleCard}
+					data={vehicles.map((v) => ({ ...v, key: v.vin }))}
 				/>
+			</div>
+
+			{supportedMetrics && (
+				<div className={cx("metrics")}>
+					<div className={cx("header")}>
+						<div>
+							<h2>Metrics selection</h2>
+							<span>Filter which metrics to query and display</span>
+						</div>
+						<Button
+							onClick={() => setMetricsSelection(undefined)}
+							text="Reset"
+						/>
+					</div>
+					<Grid
+						Item={MetricCard}
+						data={supportedMetrics?.map((metric) => ({ metric, key: metric }))}
+					/>
+				</div>
 			)}
 		</div>
 	);

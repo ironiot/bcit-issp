@@ -16,12 +16,12 @@ type Key = keyof Storage;
 
 const KEYS = ["selected-vin", "metrics-selection"] as const satisfies Key[];
 
-type LocalStorage = {
+type LocalStorageContext = {
 	get: <K extends Key>(key: K) => Storage[K] | undefined;
-	set: <K extends Key>(key: K, value: Storage[K]) => void;
+	set: <K extends Key>(key: K, value: Storage[K] | undefined) => void;
 };
 
-const LocalStorageContext = createContext<LocalStorage | null>(null);
+const LocalStorageContext = createContext<LocalStorageContext | null>(null);
 
 export function LocalStorageProvider({ children }: { children: ReactNode }) {
 	const [storage, setStorage] = useState(() =>
@@ -45,10 +45,18 @@ export function LocalStorageProvider({ children }: { children: ReactNode }) {
 		[storage],
 	);
 
-	const set = useCallback(<K extends Key>(key: K, value: Storage[K]) => {
-		setStorage((prev) => ({ ...prev, [key]: value }));
-		localStorage.setItem(key, JSON.stringify(value));
-	}, []);
+	const set = useCallback(
+		<K extends Key>(key: K, value: Storage[K] | undefined) => {
+			setStorage((prev) => ({ ...prev, [key]: value }));
+
+			if (value === undefined) {
+				localStorage.removeItem(key);
+			} else {
+				localStorage.setItem(key, JSON.stringify(value));
+			}
+		},
+		[],
+	);
 
 	return (
 		<LocalStorageContext.Provider value={{ get, set }}>
@@ -69,7 +77,7 @@ export function useLocalStorage<K extends Key>(key: K) {
 
 	const value = useMemo(() => get(key), [get, key]);
 	const setValue = useCallback(
-		(value: Storage[K]) => set(key, value),
+		(value: Storage[K] | undefined) => set(key, value),
 		[set, key],
 	);
 

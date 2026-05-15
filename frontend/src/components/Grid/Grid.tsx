@@ -17,16 +17,18 @@ export function Grid<T>({ data, Item, className }: GridProps<T>) {
 		? { ["--item-width" as string]: `${itemWidth}px` }
 		: undefined;
 
+	const itemRef = (item: HTMLDivElement | null) => {
+		if (item && !itemWidth) {
+			setItemWidth(item.offsetWidth);
+		}
+	};
+
 	return (
 		<div style={style} className={cx("grid", className)}>
 			{data.map(({ key, ...item }, index) => (
 				<div
 					key={key}
-					ref={
-						index === 0
-							? (item) => item && setItemWidth(item.offsetWidth)
-							: undefined
-					}
+					ref={index === 0 ? itemRef : undefined}
 					className={cx("item-container")}
 				>
 					<Item {...(item as any)} />

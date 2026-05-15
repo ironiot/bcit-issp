@@ -14,6 +14,7 @@ import {
 	YAxis,
 } from "recharts";
 import { apiGet } from "@/api";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { METRICS, type Metric } from "@/metrics";
@@ -150,13 +151,7 @@ export function Monitors() {
 		<div className={cx("monitors")}>
 			<header className={cx("monitorsHeader")}>
 				<h1>Monitors</h1>
-				<button
-					type="button"
-					className={cx("btnRefresh")}
-					onClick={() => loadVehicles()}
-				>
-					Refresh
-				</button>
+				<Button onClick={loadVehicles} text="Refresh" />
 			</header>
 
 			{error ? (
