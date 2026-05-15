@@ -1,0 +1,136 @@
+.errors {
+    max-width: 960px;
+    margin: auto;
+}
+
+.errorsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    min-height: 620px;
+}
+
+.leftCol {
+    padding: 1rem;
+}
+
+.rightCol {
+    display: grid;
+    grid-template-rows: 10% 1fr; 
+    gap: 1rem;
+    min-height: 620px;
+}
+
+.vehicleCard,
+.listCard {
+    padding: 0.85rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.field span {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.field select {
+    font: inherit;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.75rem 1rem;
+    margin: 0 0 1rem;
+}
+
+.detailGrid dt {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.detailGrid dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.freezeTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.freezeTable th,
+.freezeTable td {
+    text-align: left;
+    padding: 0.45rem 0.35rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.monitorLink a {
+    color: var(--color-accent);
+}
+
+.monitorLink a:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.errorList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 100%;
+    overflow: auto;
+}
+
+.errorItem {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding: 0.65rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.errorItem span {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.errorItem:hover {
+    border-color: var(--color-accent);
+}
+
+.errorItem.selected {
+    border-color: var(--color-accent);
+    background: rgba(214, 90, 49, 0.12);
+}
