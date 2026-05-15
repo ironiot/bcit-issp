@@ -36,22 +36,23 @@ export function Configs() {
 		return vehicles.find((v) => v.vin === selectedVin)?.supported_metrics;
 	}, [vehicles, selectedVin]);
 
-	const [selectedMetrics, selectMetrics] = useLocalStorage("selected-metrics");
+	const [metricsSelection, setMetricsSelection] =
+		useLocalStorage("metrics-selection");
 
 	useEffect(() => {
-		if (!selectedMetrics || !supportedMetrics) {
+		if (!metricsSelection || !supportedMetrics) {
 			return;
 		}
 		// Remove unsupported metrics from selectedMetrics
 		// (when user switches to a different vehicle with different supported metrics)
 		const filteredMetrics = Object.fromEntries(
-			Object.entries(selectedMetrics).map(([metric, isSelected]) => [
+			Object.entries(metricsSelection).map(([metric, isSelected]) => [
 				metric,
 				isSelected && supportedMetrics.includes(metric as any),
 			]),
 		) as Record<Metric, boolean>;
-		selectMetrics(filteredMetrics);
-	}, [supportedMetrics, selectMetrics, selectedMetrics]);
+		setMetricsSelection(filteredMetrics);
+	}, [supportedMetrics, setMetricsSelection, metricsSelection]);
 
 	return (
 		<div className={cx("configs")}>

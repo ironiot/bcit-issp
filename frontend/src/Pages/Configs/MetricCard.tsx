@@ -16,24 +16,24 @@ const cx = classNames.bind(styles);
 type Props = { metric: Metric };
 export function MetricCard({ metric }: Props) {
 	const [
-		selectedMetrics = METRICS.reduce(
+		metricsSelection = METRICS.reduce(
 			(acc, m) =>
 				Object.assign(acc, { [m]: DEFAULT_ENABLED_METRICS.has(m) }, acc),
 			{} as Record<Metric, boolean>,
 		),
-		setSelectedMetrics,
-	] = useLocalStorage("selected-metrics");
+		setMetricsSelection,
+	] = useLocalStorage("metrics-selection");
 
 	const toggleSelection = () =>
-		setSelectedMetrics({
-			...selectedMetrics,
-			[metric]: !selectedMetrics[metric],
+		setMetricsSelection({
+			...metricsSelection,
+			[metric]: !metricsSelection[metric],
 		});
 
 	return (
 		<Card
 			className={cx("metric-card")}
-			highlighted={selectedMetrics[metric]}
+			highlighted={metricsSelection[metric]}
 			onClick={toggleSelection}
 		>
 			<SvgIcon component={METRIC_ICONS[metric]} style={{ fontSize: 32 }} />

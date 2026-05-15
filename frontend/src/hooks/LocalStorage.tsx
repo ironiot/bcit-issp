@@ -10,11 +10,11 @@ import type { Metric } from "@/metrics";
 
 type Storage = {
 	"selected-vin": string;
-	"selected-metrics": Record<Metric, boolean>;
+	"metrics-selection": Record<Metric, boolean>;
 };
 type Key = keyof Storage;
 
-const KEYS = ["selected-vin", "selected-metrics"] as const satisfies Key[];
+const KEYS = ["selected-vin", "metrics-selection"] as const satisfies Key[];
 
 type LocalStorage = {
 	get: <K extends Key>(key: K) => Storage[K] | undefined;
