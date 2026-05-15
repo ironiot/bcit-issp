@@ -16,5 +16,5 @@ export function useIsConfigMissing() {
 type Props = { Renderer: React.FC };
 export function ConfigValidator({ Renderer }: Props) {
 	const isConfigMissing = useIsConfigMissing();
-	return isConfigMissing ? <Navigate to="/" replace /> : <Renderer />;
+	return isConfigMissing ? <Navigate to="/configs" replace /> : <Renderer />;
 }

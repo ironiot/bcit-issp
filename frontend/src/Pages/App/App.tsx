@@ -16,13 +16,10 @@ export function App() {
 			<header>
 				<strong>ISSP</strong>
 				<nav>
-					<NavLink to="/" end className={({ isActive }) => cx({ isActive })}>
-						Configs
-					</NavLink>
 					{!isConfigMissing && (
 						<>
 							<NavLink
-								to="/monitors"
+								to="/"
 								end
 								className={({ isActive }) => cx({ isActive })}
 							>
@@ -36,19 +33,23 @@ export function App() {
 							</NavLink>
 						</>
 					)}
+					<NavLink
+						to="/configs"
+						end
+						className={({ isActive }) => cx({ isActive })}
+					>
+						Configs
+					</NavLink>
 				</nav>
 			</header>
 			<main>
 				<Routes>
-					<Route path="/" element={<Configs />} />
-					<Route
-						path="/monitors"
-						element={<ConfigValidator Renderer={Monitors} />}
-					/>
+					<Route path="/" element={<ConfigValidator Renderer={Monitors} />} />
 					<Route
 						path="/errors"
 						element={<ConfigValidator Renderer={Errors} />}
 					/>
+					<Route path="/configs" element={<Configs />} />
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>
 			</main>

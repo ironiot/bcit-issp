@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { apiGet } from "@/api";
 import { Grid } from "@/components/Grid";
 import { useLocalStorage } from "@/hooks/LocalStorage";
-import type { Metric } from "@/metrics";
+import { DEFAULT_METRICS, METRICS, type Metric } from "@/metrics";
 import type { VehicleInfo } from "@/types";
 import styles from "./Configs.module.css";
 
@@ -45,11 +45,22 @@ export function Configs() {
 		useLocalStorage("metrics-selection");
 
 	useEffect(() => {
-		if (!metricsSelection || !supportedMetrics) {
+		if (!supportedMetrics) {
 			return;
 		}
-		// Remove unsupported metrics from selectedMetrics
-		// (when user switches to a different vehicle with different supported metrics)
+
+		if (!metricsSelection) {
+			const defaultMetrics = Object.fromEntries(
+				METRICS.map((m) => [
+					m,
+					DEFAULT_METRICS.has(m) && supportedMetrics.includes(m),
+				]),
+			) as Record<Metric, boolean>;
+			setMetricsSelection(defaultMetrics);
+			return;
+		}
+
+		// when user switches to a different vehicle with different supported metrics
 		if (
 			!Object.entries(metricsSelection)
 				.filter(([_, isSelected]) => isSelected)

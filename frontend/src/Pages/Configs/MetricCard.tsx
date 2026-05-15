@@ -3,7 +3,7 @@ import classNames from "classnames/bind";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import {
-	DEFAULT_ENABLED_METRICS,
+	DEFAULT_METRICS,
 	METRIC_ICONS,
 	METRICS,
 	METRICS_LABELS,
@@ -16,11 +16,9 @@ const cx = classNames.bind(styles);
 type Props = { metric: Metric };
 export function MetricCard({ metric }: Props) {
 	const [
-		metricsSelection = METRICS.reduce(
-			(acc, m) =>
-				Object.assign(acc, { [m]: DEFAULT_ENABLED_METRICS.has(m) }, acc),
-			{} as Record<Metric, boolean>,
-		),
+		metricsSelection = Object.fromEntries(
+			METRICS.map((m) => [m, DEFAULT_METRICS.has(m)]),
+		) as Record<Metric, boolean>,
 		setMetricsSelection,
 	] = useLocalStorage("metrics-selection");
 

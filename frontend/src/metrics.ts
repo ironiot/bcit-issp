@@ -123,7 +123,7 @@ export const METRIC_ICONS = {
 	distance_w_mil: TaxiAlert,
 } as const satisfies Record<Metric, SvgIconComponent>;
 
-export const DEFAULT_ENABLED_METRICS = new Set<Metric>([
+export const DEFAULT_METRICS = new Set<Metric>([
 	"speed",
 	"rpm",
 	"engine_load",
