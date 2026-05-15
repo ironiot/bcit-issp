@@ -1,7 +1,7 @@
 import classNames from "classnames/bind";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { useLocalStorage } from "@/hooks/LocalStorage";
-import { Errors } from "../../Errors";
+import { Errors } from "../Errors";
 import { Configs } from "../Configs";
 import { Monitors } from "../Monitors";
 import styles from "./App.module.css";
