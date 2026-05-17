@@ -1,3 +1,4 @@
+import { Modal, Popover } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
 import { useEffect, useMemo, useState } from "react";
@@ -57,16 +58,28 @@ type SignalChartProps = {
 	metric: Metric;
 	data: ChartPoint[];
 	cycleDtcs: DtcRow[];
+	height?: number;
+	onClick?: () => void;
 };
 
-function SignalChart({ metric, data, cycleDtcs }: SignalChartProps) {
+function SignalChart({
+	metric,
+	data,
+	cycleDtcs,
+	height = 220,
+	onClick,
+}: SignalChartProps) {
 	const unit = UNITS[metric];
 
 	return (
-		<article className={cx("signalChart")} aria-label={METRICS_LABELS[metric]}>
+		<article
+			className={cx("signalChart")}
+			aria-label={METRICS_LABELS[metric]}
+			onClick={onClick}
+		>
 			<h3 className={cx("signalChartTitle")}>{METRICS_LABELS[metric]}</h3>
 			<div className={cx("chartWrap")}>
-				<ResponsiveContainer width="100%" height={220}>
+				<ResponsiveContainer width="100%" height={height}>
 					<LineChart
 						data={data}
 						margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
@@ -151,6 +164,8 @@ export function Monitors() {
 	);
 
 	const selectedMetricsKey = selectedMetrics.join(",");
+
+	const [highlightedMetric, highlightMetric] = useState<Metric>();
 
 	const {
 		data: vehicles = [],
@@ -363,6 +378,7 @@ export function Monitors() {
 										metric={metric}
 										data={chartPoints}
 										cycleDtcs={cycleDtcs}
+										onClick={() => highlightMetric(metric)}
 									/>
 								))}
 							</div>
@@ -381,6 +397,21 @@ export function Monitors() {
 					</Card>
 				</div>
 			)}
+			<Modal
+				open={highlightedMetric !== undefined}
+				onClose={() => highlightMetric(undefined)}
+			>
+				<div className={cx("modalContent")}>
+					{highlightedMetric && (
+						<SignalChart
+							metric={highlightedMetric}
+							data={chartPoints}
+							cycleDtcs={cycleDtcs}
+							height={440}
+						/>
+					)}
+				</div>
+			</Modal>
 		</div>
 	);
 }
