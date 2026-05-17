@@ -34,16 +34,47 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.75rem;
 	}
 
 	.chartToolbar h2 {
 		margin: 0;
 	}
 
+	.chartGrid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1rem;
+	}
+
+	@media (max-width: 900px) {
+		.chartGrid {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 560px) {
+		.chartGrid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.signalChart {
+		background: var(--color-bg);
+		border-radius: 8px;
+		padding: 0.65rem 0.75rem;
+	}
+
+	.signalChartTitle {
+		margin: 0 0 0.5rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
 	.chartWrap {
 		width: 100%;
-		min-height: 320px;
+		min-height: 220px;
 	}
 
 	.dtcLinks {

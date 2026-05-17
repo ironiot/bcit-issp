@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
 	CartesianGrid,
-	Legend,
 	Line,
 	LineChart,
 	ReferenceLine,
@@ -17,7 +16,12 @@ import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
-import { METRICS, type Metric } from "@/metrics";
+import {
+	getSelectedMetrics,
+	METRICS_LABELS,
+	type Metric,
+	UNITS,
+} from "@/metrics";
 import type { DriveCycle, DtcRow, Sample, VehicleInfo } from "@/types";
 import styles from "./Monitors.module.css";
 
@@ -47,10 +51,108 @@ function cycleInError(dc: DriveCycle, dtcs: DtcRow[]): boolean {
 	});
 }
 
+type ChartPoint = { timeMs: number } & Record<string, number | null>;
+
+type SignalChartProps = {
+	metric: Metric;
+	data: ChartPoint[];
+	cycleDtcs: DtcRow[];
+};
+
+function SignalChart({ metric, data, cycleDtcs }: SignalChartProps) {
+	const unit = UNITS[metric];
+
+	return (
+		<article className={cx("signalChart")} aria-label={METRICS_LABELS[metric]}>
+			<h3 className={cx("signalChartTitle")}>{METRICS_LABELS[metric]}</h3>
+			<div className={cx("chartWrap")}>
+				<ResponsiveContainer width="100%" height={220}>
+					<LineChart
+						data={data}
+						margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+					>
+						<CartesianGrid
+							stroke="var(--color-chart-grid)"
+							strokeDasharray="3 3"
+						/>
+						<XAxis
+							type="number"
+							dataKey="timeMs"
+							domain={["dataMin", "dataMax"]}
+							tickFormatter={(ms: number) =>
+								new Date(ms).toLocaleTimeString(undefined, {
+									hour: "2-digit",
+									minute: "2-digit",
+									second: "2-digit",
+								})
+							}
+							stroke="var(--color-chart-axis)"
+							tick={{ fill: "var(--color-text-muted)" }}
+							fontSize={10}
+						/>
+						<YAxis
+							stroke="var(--color-chart-axis)"
+							tick={{ fill: "var(--color-text-muted)" }}
+							fontSize={10}
+							width={48}
+						/>
+						<Tooltip
+							labelFormatter={(ms) =>
+								new Date(Number(ms)).toLocaleString()
+							}
+							formatter={(value) => [
+								value != null ? `${value}${unit}` : "—",
+								METRICS_LABELS[metric],
+							]}
+							contentStyle={{
+								background: "var(--color-surface)",
+								border: "1px solid var(--color-border-strong)",
+								color: "var(--color-text)",
+							}}
+							labelStyle={{ color: "var(--color-text)" }}
+						/>
+						<Line
+							type="monotone"
+							dataKey={metric}
+							name={METRICS_LABELS[metric]}
+							stroke="var(--color-accent)"
+							dot={false}
+							strokeWidth={2}
+							connectNulls
+						/>
+						{cycleDtcs.map((d) => (
+							<ReferenceLine
+								key={d.id}
+								x={new Date(d.timestamp).getTime()}
+								stroke="var(--color-chart-dtc)"
+								strokeWidth={2}
+								strokeOpacity={0.95}
+								label={{
+									value: d.code,
+									fill: "var(--color-chart-dtc)",
+									fontSize: 9,
+									position: "top",
+								}}
+							/>
+						))}
+					</LineChart>
+				</ResponsiveContainer>
+			</div>
+		</article>
+	);
+}
+
 export function Monitors() {
 	const [selectedVin, setSelectedVin] = useLocalStorage("selected-vin");
+	const [metricsSelection] = useLocalStorage("metrics-selection");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-	const [metric, setMetric] = useState<Metric>("speed");
+
+	const selectedMetrics = useMemo(
+		() => getSelectedMetrics(metricsSelection),
+		[metricsSelection],
+	);
+
+	const selectedMetricsKey = selectedMetrics.join(",");
 
 	const {
 		data: vehicles = [],
@@ -94,15 +196,15 @@ export function Monitors() {
 		isLoading: chartLoading,
 		error: samplesError,
 	} = useQuery({
-		queryKey: ["samples", selectedCycleId],
+		queryKey: ["samples", selectedCycleId, selectedMetricsKey],
 		queryFn: () => {
-			const fields = ["timestamp", ...METRICS].join(",");
+			const fields = ["timestamp", ...selectedMetrics].join(",");
 			const q = new URLSearchParams({ fields });
 			return apiGet<Sample[]>(
 				`/data/samples/drive_cycle/${encodeURIComponent(selectedCycleId!)}?${q}`,
 			);
 		},
-		enabled: !!selectedCycleId,
+		enabled: !!selectedCycleId && selectedMetrics.length > 0,
 	});
 
 	const { data: vinDtcs = [], error: vinDtcsError } = useQuery({
@@ -121,17 +223,17 @@ export function Monitors() {
 				? String(errorData)
 				: null;
 
-	const chartPoints = useMemo(() => {
+	const chartPoints = useMemo((): ChartPoint[] => {
 		return samples.map((s) => {
 			const timeMs = new Date(s.timestamp).getTime();
-			const row: Record<string, number | null> = { timeMs };
-			for (const m of METRICS) {
+			const row: ChartPoint = { timeMs };
+			for (const m of selectedMetrics) {
 				const v = s[m];
 				row[m] = v === undefined || v === null ? null : Number(v);
 			}
 			return row;
 		});
-	}, [samples]);
+	}, [samples, selectedMetrics]);
 
 	const cycleDtcs = useMemo(() => {
 		if (!selectedCycle) return [];
@@ -257,101 +359,32 @@ export function Monitors() {
 						)}
 					</Card>
 
-					<Card className={cx("card")} aria-label="Samples chart">
+					<Card className={cx("card")} aria-label="Signals">
 						<div className={cx("chartToolbar")}>
 							<h2>Signals</h2>
-							<label className={cx("field", "inline")}>
-								<span className="sr-only">Metric</span>
-								{/* TODO: dynamically generate options based on selected metrics */}
-								<select
-									value={metric}
-									onChange={(e) => setMetric(e.target.value as Metric)}
-								>
-									<option value="speed">Speed</option>
-									<option value="rpm">RPM</option>
-									<option value="engine_load">Engine load</option>
-									<option value="throttle_pos">Throttle</option>
-									<option value="coolant_temp">Coolant °C</option>
-									<option value="map">MAP</option>
-								</select>
-							</label>
+							<span className="muted">
+								{selectedMetrics.length} metric
+								{selectedMetrics.length === 1 ? "" : "s"} from Configs
+							</span>
 						</div>
 						{chartLoading ? (
 							<p className="muted">Loading samples…</p>
+						) : !selectedMetrics.length ? (
+							<p className="muted">
+								No metrics selected. Choose metrics on the Configs page.
+							</p>
 						) : !chartPoints.length ? (
 							<p className="muted">No samples for this drive cycle.</p>
 						) : (
-							<div className={cx("chartWrap")}>
-								<ResponsiveContainer width="100%" height={320}>
-									<LineChart
+							<div className={cx("chartGrid")}>
+								{selectedMetrics.map((metric) => (
+									<SignalChart
+										key={metric}
+										metric={metric}
 										data={chartPoints}
-										margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-									>
-										<CartesianGrid
-											stroke="var(--color-chart-grid)"
-											strokeDasharray="3 3"
-										/>
-										<XAxis
-											type="number"
-											dataKey="timeMs"
-											domain={["dataMin", "dataMax"]}
-											tickFormatter={(ms: number) =>
-												new Date(ms).toLocaleTimeString(undefined, {
-													hour: "2-digit",
-													minute: "2-digit",
-													second: "2-digit",
-												})
-											}
-											stroke="var(--color-chart-axis)"
-											tick={{ fill: "var(--color-text-muted)" }}
-											fontSize={11}
-										/>
-										<YAxis
-											stroke="var(--color-chart-axis)"
-											tick={{ fill: "var(--color-text-muted)" }}
-											fontSize={11}
-										/>
-										<Tooltip
-											labelFormatter={(ms) =>
-												new Date(Number(ms)).toLocaleString()
-											}
-											contentStyle={{
-												background: "var(--color-surface)",
-												border: "1px solid var(--color-border-strong)",
-												color: "var(--color-text)",
-											}}
-											labelStyle={{ color: "var(--color-text)" }}
-											itemStyle={{ color: "var(--color-chart-line)" }}
-										/>
-										<Legend
-											wrapperStyle={{ color: "var(--color-text-muted)" }}
-										/>
-										<Line
-											type="monotone"
-											dataKey={metric}
-											name={metric}
-											stroke="var(--color-accent)"
-											dot={false}
-											strokeWidth={2}
-											connectNulls
-										/>
-										{cycleDtcs.map((d) => (
-											<ReferenceLine
-												key={d.id}
-												x={new Date(d.timestamp).getTime()}
-												stroke="var(--color-chart-dtc)"
-												strokeWidth={2}
-												strokeOpacity={0.95}
-												label={{
-													value: d.code,
-													fill: "var(--color-chart-dtc)",
-													fontSize: 10,
-													position: "top",
-												}}
-											/>
-										))}
-									</LineChart>
-								</ResponsiveContainer>
+										cycleDtcs={cycleDtcs}
+									/>
+								))}
 							</div>
 						)}
 						{cycleDtcs.length > 0 ? (

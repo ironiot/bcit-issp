@@ -133,3 +133,11 @@ export const DEFAULT_METRICS = new Set<Metric>([
 ]);
 
 export type Metric = (typeof METRICS)[number];
+
+/** Metrics enabled in Configs, in stable display order. */
+export function getSelectedMetrics(
+	selection: Record<Metric, boolean> | undefined,
+): Metric[] {
+	if (!selection) return [];
+	return METRICS.filter((m) => selection[m]);
+}
