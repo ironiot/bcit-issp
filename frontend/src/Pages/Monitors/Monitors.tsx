@@ -97,9 +97,7 @@ function SignalChart({ metric, data, cycleDtcs }: SignalChartProps) {
 							width={48}
 						/>
 						<Tooltip
-							labelFormatter={(ms) =>
-								new Date(Number(ms)).toLocaleString()
-							}
+							labelFormatter={(ms) => new Date(Number(ms)).toLocaleString()}
 							formatter={(value) => [
 								value != null ? `${value}${unit}` : "—",
 								METRICS_LABELS[metric],
@@ -143,7 +141,7 @@ function SignalChart({ metric, data, cycleDtcs }: SignalChartProps) {
 }
 
 export function Monitors() {
-	const [selectedVin, setSelectedVin] = useLocalStorage("selected-vin");
+	const [selectedVin] = useLocalStorage("selected-vin");
 	const [metricsSelection] = useLocalStorage("metrics-selection");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
 
@@ -264,29 +262,11 @@ export function Monitors() {
 
 			{loading ? (
 				<p className="muted">Loading vehicles…</p>
-			) : !vehicles.length && !error ? (
-				<p className="muted">No vehicles in the database yet.</p>
-			) : !vehicles.length ? null : (
+			) : (
 				<div className={cx("cards")}>
 					<Card className={cx("card")} aria-label="Vehicle">
 						<h2>Vehicle</h2>
-						{vehicles.length > 1 ? (
-							<label className={cx("field")}>
-								<span>Select VIN</span>
-								<select
-									value={selectedVin ?? ""}
-									onChange={(e) => setSelectedVin(e.target.value)}
-								>
-									{vehicles.map((v) => (
-										<option key={v.vin} value={v.vin}>
-											{v.vin}
-											{v.model ? ` — ${v.model}` : ""}
-										</option>
-									))}
-								</select>
-							</label>
-						) : null}
-						{activeVehicle ? (
+						{activeVehicle && (
 							<dl className={cx("vehicleGrid")}>
 								<div>
 									<dt>VIN</dt>
@@ -333,7 +313,7 @@ export function Monitors() {
 									</dd>
 								</div>
 							</dl>
-						) : null}
+						)}
 					</Card>
 
 					<Card className={cx("card")} aria-label="Drive cycle">
