@@ -1,4 +1,4 @@
-import { Modal, Popover } from "@mui/material";
+import { Modal } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
 import { useEffect, useMemo, useState } from "react";
@@ -401,16 +401,16 @@ export function Monitors() {
 				open={highlightedMetric !== undefined}
 				onClose={() => highlightMetric(undefined)}
 			>
-				<div className={cx("modalContent")}>
+				<Card className={cx("modalContent")}>
 					{highlightedMetric && (
 						<SignalChart
 							metric={highlightedMetric}
 							data={chartPoints}
 							cycleDtcs={cycleDtcs}
-							height={440}
+							height={400}
 						/>
 					)}
-				</div>
+				</Card>
 			</Modal>
 		</div>
 	);
