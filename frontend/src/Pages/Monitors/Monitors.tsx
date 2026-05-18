@@ -1,5 +1,5 @@
 import { Modal } from "@mui/material";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -155,7 +155,6 @@ function SignalChart({
 }
 
 export function Monitors() {
-	const queryClient = useQueryClient();
 	const [selectedVin] = useLocalStorage("selected-vin");
 	const [metricsSelection] = useLocalStorage("metrics-selection");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
@@ -169,7 +168,11 @@ export function Monitors() {
 
 	const [highlightedMetric, highlightMetric] = useState<Metric>();
 
-	const { data: driveCycles = [], error: driveCyclesError } = useQuery({
+	const {
+		data: driveCycles = [],
+		refetch: refetchDriveCycles,
+		error: driveCyclesFetchError,
+	} = useQuery({
 		queryKey: ["driveCycles", selectedVin],
 		queryFn: () =>
 			apiGet<DriveCycle[]>(
@@ -199,7 +202,8 @@ export function Monitors() {
 	const {
 		data: samples = [],
 		isLoading: chartLoading,
-		error: samplesError,
+		refetch: refetchSamples,
+		error: samplesFetchError,
 	} = useQuery({
 		queryKey: ["samples", selectedCycleId, selectedMetricsKey],
 		queryFn: () => {
@@ -212,14 +216,19 @@ export function Monitors() {
 		enabled: !!selectedCycleId && selectedMetrics.length > 0,
 	});
 
-	const { data: vinDtcs = [], error: vinDtcsError } = useQuery({
+	const {
+		data: dtcs = [],
+		refetch: refetchDtcs,
+		error: dtcsFetchError,
+	} = useQuery({
 		queryKey: ["vinDtcs", selectedVin],
 		queryFn: () =>
 			apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin!)}`),
 		enabled: !!selectedVin,
 	});
 
-	const errorData = driveCyclesError || samplesError || vinDtcsError;
+	const errorData =
+		driveCyclesFetchError || samplesFetchError || dtcsFetchError;
 	const error =
 		errorData instanceof Error
 			? errorData.message
@@ -245,18 +254,22 @@ export function Monitors() {
 		const end = selectedCycle.end_time
 			? new Date(selectedCycle.end_time).getTime()
 			: Number.POSITIVE_INFINITY;
-		return vinDtcs.filter((d) => {
+		return dtcs.filter((d) => {
 			const t = new Date(d.timestamp).getTime();
 			return t >= start && t <= end;
 		});
-	}, [selectedCycle, vinDtcs]);
+	}, [selectedCycle, dtcs]);
 
 	return (
 		<div className={cx("monitors")}>
 			<header className={cx("monitorsHeader")}>
 				<h1>Monitors</h1>
 				<Button
-					onClick={() => queryClient.invalidateQueries()}
+					onClick={() => {
+						refetchDriveCycles();
+						refetchSamples();
+						refetchDtcs();
+					}}
 					text="Refresh"
 				/>
 			</header>
@@ -285,7 +298,7 @@ export function Monitors() {
 									<option key={dc.id} value={dc.id}>
 										{formatTime(dc.start_time)}
 										{dc.end_time ? "" : " (active)"}
-										{cycleInError(dc, vinDtcs) ? " ⚠" : ""}
+										{cycleInError(dc, dtcs) ? " ⚠" : ""}
 									</option>
 								))}
 							</select>

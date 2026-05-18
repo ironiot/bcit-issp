@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "@/api";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { VehicleSummary } from "@/components/VehicleSummary";
 import { useLocalStorage } from "@/hooks/LocalStorage";
@@ -12,7 +13,7 @@ import styles from "./Errors.module.css";
 export function Errors() {
 	const [selectedVin] = useLocalStorage("selected-vin");
 
-	const { data: dtcs = [] } = useQuery({
+	const { data: dtcs = [], refetch: refetchDtcs } = useQuery({
 		queryKey: ["dtcs", selectedVin],
 		queryFn: () =>
 			apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin ?? "")}`),
@@ -31,6 +32,10 @@ export function Errors() {
 		<div className={styles.errors}>
 			<header className={styles.errorsHeader}>
 				<h1>Errors</h1>
+				<Button
+					onClick={() => refetchDtcs()}
+					text="Refresh"
+				/>
 			</header>
 
 			<VehicleSummary className={styles.vehicleSummary} />

@@ -27,7 +27,7 @@ export function VehicleCard({
 					<tr>
 						<th>Distance</th>
 						<td>
-							{distance.toFixed(1)} {UNITS.distance}
+							{(distance ?? 0).toFixed(1)} {UNITS.distance}
 						</td>
 					</tr>
 					<tr>
