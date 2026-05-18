@@ -1,5 +1,7 @@
 import logging
-import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from uuid import UUID
 
 from aiohttp import ClientSession
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -23,6 +25,12 @@ SAMPLES_BATCH_SIZE = 12  # one sample per 5s -> insert every minute
 """How many samples to collect before inserting all at once"""
 
 
+@dataclass
+class ActiveDriveCycle:
+    id: UUID | None
+    start_time: datetime = field(default_factory=datetime.now)
+
+
 class DBWriter:
     def __init__(
         self,
@@ -33,7 +41,7 @@ class DBWriter:
         self.http_client = http_client
 
         self.vin: str | None = None
-        self.active_drive_cycle_id: uuid.UUID | None = None
+        self.active_drive_cycle: ActiveDriveCycle | None = None
         self.samples_buffer: list[LiveSample] = []
         self.new_dtcs: list[Dtc] = []
 
@@ -72,13 +80,10 @@ class DBWriter:
             # in case app crashed without ending the previous drive cycle
             await self._end_active_drive_cycles(session)
 
-            new_drive = DriveCycle(vin=self.vin)
-            session.add(new_drive)
-
-            await session.flush()  # to get the new drive cycle ID
-            self.active_drive_cycle_id = new_drive.id
-
-            await session.commit()
+        self.active_drive_cycle = ActiveDriveCycle(id=None)
+        # id None means it's not committed to the DB yet
+        # We only add drive cycle after collecting 12 samples (buffer flush)
+        # so that no DC ever has 0 samples
 
     async def end_drive_cycle(self):
         if not self.vin:
@@ -89,16 +94,28 @@ class DBWriter:
             session.add_all(instances=self.samples_buffer)
             self.samples_buffer.clear()
 
-            if self.active_drive_cycle_id and (
-                drive := await session.get(DriveCycle, self.active_drive_cycle_id)
-            ):
-                drive.end_time = func.now()
-                await self._update_drive_cycle_distance(session, drive)
-            else:
-                await self._end_active_drive_cycles(session)
+            if self.active_drive_cycle:
+                if not self.active_drive_cycle.id:
+                    drive = DriveCycle(
+                        vin=self.vin,
+                        start_time=self.active_drive_cycle.start_time,
+                        end_time=func.now(),
+                    )
+                    session.add(drive)
+                elif drive := await session.get(DriveCycle, self.active_drive_cycle.id):
+                    drive.end_time = func.now()
 
-            self.active_drive_cycle_id = None
+                if drive:
+                    await self._update_drive_cycle_distance(session, drive)
+                    await session.commit()
+                    self.active_drive_cycle = None
+                    return
+
+            # Meaning we try to end a drive cycle but the program doesn't know any active ones.
+            # Should be unreachable, but just in case, clear all drive cycles without end times for this VIN.
+            await self._end_active_drive_cycles(session)
             await session.commit()
+            self.active_drive_cycle = None
 
     async def _end_active_drive_cycles(self, session: AsyncSession):
         # There should never be multiple active drive cycles for the same vehicle, but just in case, end them all.
@@ -136,7 +153,7 @@ class DBWriter:
             return
 
         # in case app starts while engine is already on
-        if not self.active_drive_cycle_id:
+        if not self.active_drive_cycle:
             await self.start_drive_cycle()
 
         sample = LiveSample(vin=self.vin, timestamp=poll.ts, **poll.samples)
@@ -146,6 +163,17 @@ class DBWriter:
             async with self.session_factory() as session:
                 session.add_all(instances=self.samples_buffer)
                 self.samples_buffer.clear()
+
+                if self.active_drive_cycle and not self.active_drive_cycle.id:
+                    drive = DriveCycle(
+                        vin=self.vin,
+                        start_time=self.active_drive_cycle.start_time,
+                    )
+                    session.add(drive)
+                    await session.flush()
+                    await session.refresh(drive)
+                    self.active_drive_cycle.id = drive.id
+
                 await session.commit()
 
     # TODO: clearing DTCs while engine off never gets recorded in the DB.
