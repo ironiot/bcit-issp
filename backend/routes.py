@@ -68,6 +68,29 @@ async def get_sample_data_by_time_range(
     return jsonable_encoder(filtered_res)
 
 
+@router.get("/data/samples/latest/{vin}")
+async def get_latest_sample(
+    vin: str,
+    request: Request,
+    fields: str = "",
+):
+    async with get_db_reader(request) as reader:
+        latest_sample = await reader.get_latest_sample(vin)
+    if not latest_sample:
+        raise HTTPException(
+            status_code=404, detail="No sample found for the given VIN."
+        )
+
+    if not fields:
+        return jsonable_encoder({
+            c.name: getattr(latest_sample, c.name, None)
+            for c in latest_sample.__table__.columns
+        })
+
+    fields_list = ["timestamp"] + [f.strip() for f in fields.split(",") if f.strip()]
+    return jsonable_encoder({f: getattr(latest_sample, f, None) for f in fields_list})
+
+
 @router.get("/data/dtcs/{vin}")
 async def get_errors(
     vin: str,

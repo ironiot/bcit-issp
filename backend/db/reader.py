@@ -218,6 +218,17 @@ class DBReader:
         result = await self.session.scalars(stmt)
         return list(result.all())
 
+    async def get_latest_sample(self, vin: str) -> LiveSample | None:
+        """Return the latest sample for a given VIN."""
+        stmt = (
+            select(LiveSample)
+            .where(LiveSample.vin == vin)
+            .order_by(LiveSample.timestamp.desc())
+            .limit(1)
+        )
+        result = await self.session.scalars(stmt)
+        return result.first()
+
     async def get_dtcs(
         self,
         vin: str,
