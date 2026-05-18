@@ -6,7 +6,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { VehicleSummary } from "@/components/VehicleSummary";
 import { useLocalStorage } from "@/hooks/LocalStorage";
-import { UNITS } from "@/metrics";
+import { METRICS_LABELS, UNITS } from "@/metrics";
 import type { DtcRow, SampleData } from "@/types";
 import styles from "./Errors.module.css";
 
@@ -32,10 +32,7 @@ export function Errors() {
 		<div className={styles.errors}>
 			<header className={styles.errorsHeader}>
 				<h1>Errors</h1>
-				<Button
-					onClick={() => refetchDtcs()}
-					text="Refresh"
-				/>
+				<Button onClick={() => refetchDtcs()} text="Refresh" />
 			</header>
 
 			<VehicleSummary className={styles.vehicleSummary} />
@@ -80,8 +77,8 @@ export function Errors() {
 														<> </>
 													) : (
 														<>
-															<td>{metric}</td>
-															<td>{`${String(value)}${UNITS[metric as keyof typeof UNITS]}`}</td>
+															<td>{METRICS_LABELS[metric] ?? metric}</td>
+															<td>{`${String(value)}${UNITS[metric] ?? ""}`}</td>
 														</>
 													)}
 												</tr>

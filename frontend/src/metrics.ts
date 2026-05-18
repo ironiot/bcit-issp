@@ -17,7 +17,7 @@ import {
 	WindPower,
 } from "@mui/icons-material";
 
-export const UNITS = {
+export const UNITS: Record<string, string> = {
 	distance: " km",
 	speed: " km/h",
 	rpm: " rpm",
@@ -42,8 +42,7 @@ export const UNITS = {
 	fuel_level: "%",
 	barometric_pressure: " kPa",
 	distance_w_mil: " km",
-	// distance is in some stats but not live samples, that's why it's separate
-} as const satisfies Record<Metric | "distance", string>;
+}
 
 export const METRICS = [
 	"rpm",
@@ -71,7 +70,7 @@ export const METRICS = [
 	"distance_w_mil",
 ] as const;
 
-export const METRICS_LABELS = {
+export const METRICS_LABELS: Record<string, string> = {
 	rpm: "RPM",
 	speed: "Speed",
 	engine_load: "Engine load",
@@ -95,7 +94,7 @@ export const METRICS_LABELS = {
 	fuel_level: "Fuel level",
 	barometric_pressure: "Barometric pressure",
 	distance_w_mil: "Distance with MIL on",
-} as const satisfies Record<Metric, string>;
+};
 
 export const METRIC_ICONS = {
 	rpm: Speed,
