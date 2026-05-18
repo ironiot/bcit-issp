@@ -1,5 +1,5 @@
 import { Modal } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import classNames from "classnames/bind";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,6 +16,7 @@ import {
 import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { VehicleSummary } from "@/components/VehicleSummary";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import {
 	getSelectedMetrics,
@@ -23,7 +24,7 @@ import {
 	type Metric,
 	UNITS,
 } from "@/metrics";
-import type { DriveCycle, DtcRow, Sample, VehicleInfo } from "@/types";
+import type { DriveCycle, DtcRow, Sample } from "@/types";
 import styles from "./Monitors.module.css";
 
 const cx = classNames.bind(styles);
@@ -154,6 +155,7 @@ function SignalChart({
 }
 
 export function Monitors() {
+	const queryClient = useQueryClient();
 	const [selectedVin] = useLocalStorage("selected-vin");
 	const [metricsSelection] = useLocalStorage("metrics-selection");
 	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
@@ -166,16 +168,6 @@ export function Monitors() {
 	const selectedMetricsKey = selectedMetrics.join(",");
 
 	const [highlightedMetric, highlightMetric] = useState<Metric>();
-
-	const {
-		data: vehicles = [],
-		isLoading: loading,
-		error: vehiclesError,
-		refetch: loadVehicles,
-	} = useQuery({
-		queryKey: ["vehicles"],
-		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
-	});
 
 	const { data: driveCycles = [], error: driveCyclesError } = useQuery({
 		queryKey: ["driveCycles", selectedVin],
@@ -227,8 +219,7 @@ export function Monitors() {
 		enabled: !!selectedVin,
 	});
 
-	const errorData =
-		vehiclesError || driveCyclesError || samplesError || vinDtcsError;
+	const errorData = driveCyclesError || samplesError || vinDtcsError;
 	const error =
 		errorData instanceof Error
 			? errorData.message
@@ -260,13 +251,14 @@ export function Monitors() {
 		});
 	}, [selectedCycle, vinDtcs]);
 
-	const activeVehicle = vehicles.find((v) => v.vin === selectedVin);
-
 	return (
 		<div className={cx("monitors")}>
 			<header className={cx("monitorsHeader")}>
 				<h1>Monitors</h1>
-				<Button onClick={loadVehicles} text="Refresh" />
+				<Button
+					onClick={() => queryClient.invalidateQueries()}
+					text="Refresh"
+				/>
 			</header>
 
 			{error ? (
@@ -275,128 +267,74 @@ export function Monitors() {
 				</p>
 			) : null}
 
-			{loading ? (
-				<p className="muted">Loading vehicles…</p>
-			) : (
-				<div className={cx("cards")}>
-					<Card className={cx("card")} aria-label="Vehicle">
-						<h2>Vehicle</h2>
-						{activeVehicle && (
-							<dl className={cx("vehicleGrid")}>
-								<div>
-									<dt>VIN</dt>
-									<dd>{activeVehicle.vin}</dd>
-								</div>
-								<div>
-									<dt>Model</dt>
-									<dd>{activeVehicle.model ?? "—"}</dd>
-								</div>
-								<div>
-									<dt>Body</dt>
-									<dd>{activeVehicle.body_type ?? "—"}</dd>
-								</div>
-								<div>
-									<dt>Fuel</dt>
-									<dd>{activeVehicle.fuel_type ?? "—"}</dd>
-								</div>
-								<div>
-									<dt>Drive cycles</dt>
-									<dd>{activeVehicle.drive_cycles_count}</dd>
-								</div>
-								<div>
-									<dt>Distance (stored)</dt>
-									<dd>
-										{typeof activeVehicle.distance === "number"
-											? `${activeVehicle.distance.toFixed(1)} km`
-											: "—"}
-									</dd>
-								</div>
-								<div>
-									<dt>Active DTCs</dt>
-									<dd>
-										{activeVehicle.active_dtcs?.filter(Boolean).length
-											? activeVehicle.active_dtcs.filter(Boolean).join(", ")
-											: "None"}
-									</dd>
-								</div>
-								<div>
-									<dt>Last sample</dt>
-									<dd>
-										{activeVehicle.last_measure
-											? formatTime(activeVehicle.last_measure)
-											: "—"}
-									</dd>
-								</div>
-							</dl>
-						)}
-					</Card>
+			<div className={cx("cards")}>
+				<VehicleSummary className={cx("card")} />
 
-					<Card className={cx("card")} aria-label="Drive cycle">
-						<h2>Drive cycle</h2>
-						{!driveCycles.length ? (
-							<p className="muted">No drive cycles for this vehicle.</p>
-						) : (
-							<label className={cx("field")}>
-								<span>Trip</span>
-								<select
-									value={selectedCycleId ?? ""}
-									onChange={(e) => setSelectedCycleId(e.target.value)}
-								>
-									{driveCycles.map((dc) => (
-										<option key={dc.id} value={dc.id}>
-											{formatTime(dc.start_time)}
-											{dc.end_time ? "" : " (active)"}
-											{cycleInError(dc, vinDtcs) ? " ⚠" : ""}
-										</option>
-									))}
-								</select>
-							</label>
-						)}
-					</Card>
+				<Card className={cx("card")} aria-label="Drive cycle">
+					<h2>Drive cycle</h2>
+					{!driveCycles.length ? (
+						<p className="muted">No drive cycles for this vehicle.</p>
+					) : (
+						<label className={cx("field")}>
+							<span>Trip</span>
+							<select
+								value={selectedCycleId ?? ""}
+								onChange={(e) => setSelectedCycleId(e.target.value)}
+							>
+								{driveCycles.map((dc) => (
+									<option key={dc.id} value={dc.id}>
+										{formatTime(dc.start_time)}
+										{dc.end_time ? "" : " (active)"}
+										{cycleInError(dc, vinDtcs) ? " ⚠" : ""}
+									</option>
+								))}
+							</select>
+						</label>
+					)}
+				</Card>
 
-					<Card className={cx("card")} aria-label="Signals">
-						<div className={cx("chartToolbar")}>
-							<h2>Signals</h2>
-							<span className="muted">
-								{selectedMetrics.length} metric
-								{selectedMetrics.length === 1 ? "" : "s"} from Configs
-							</span>
+				<Card className={cx("card")} aria-label="Signals">
+					<div className={cx("chartToolbar")}>
+						<h2>Signals</h2>
+						<span className="muted">
+							{selectedMetrics.length} metric
+							{selectedMetrics.length === 1 ? "" : "s"} from Configs
+						</span>
+					</div>
+					{chartLoading ? (
+						<p className="muted">Loading samples…</p>
+					) : !selectedMetrics.length ? (
+						<p className="muted">
+							No metrics selected. Choose metrics on the Configs page.
+						</p>
+					) : !chartPoints.length ? (
+						<p className="muted">No samples for this drive cycle.</p>
+					) : (
+						<div className={cx("chartGrid")}>
+							{selectedMetrics.map((metric) => (
+								<SignalChart
+									key={metric}
+									metric={metric}
+									data={chartPoints}
+									cycleDtcs={cycleDtcs}
+									onClick={() => highlightMetric(metric)}
+								/>
+							))}
 						</div>
-						{chartLoading ? (
-							<p className="muted">Loading samples…</p>
-						) : !selectedMetrics.length ? (
-							<p className="muted">
-								No metrics selected. Choose metrics on the Configs page.
-							</p>
-						) : !chartPoints.length ? (
-							<p className="muted">No samples for this drive cycle.</p>
-						) : (
-							<div className={cx("chartGrid")}>
-								{selectedMetrics.map((metric) => (
-									<SignalChart
-										key={metric}
-										metric={metric}
-										data={chartPoints}
-										cycleDtcs={cycleDtcs}
-										onClick={() => highlightMetric(metric)}
-									/>
-								))}
-							</div>
-						)}
-						{cycleDtcs.length > 0 ? (
-							<ul className={`${cx("dtcLinks")} muted`}>
-								{cycleDtcs.map((d) => (
-									<li key={d.id}>
-										<Link to={`/errors?dtc=${d.id}`}>
-											{d.code} at {formatTime(d.timestamp)}
-										</Link>
-									</li>
-								))}
-							</ul>
-						) : null}
-					</Card>
-				</div>
-			)}
+					)}
+					{cycleDtcs.length > 0 ? (
+						<ul className={`${cx("dtcLinks")} muted`}>
+							{cycleDtcs.map((d) => (
+								<li key={d.id}>
+									<Link to={`/errors?dtc=${d.id}`}>
+										{d.code} at {formatTime(d.timestamp)}
+									</Link>
+								</li>
+							))}
+						</ul>
+					) : null}
+				</Card>
+			</div>
 			<Modal
 				open={highlightedMetric !== undefined}
 				onClose={() => highlightMetric(undefined)}

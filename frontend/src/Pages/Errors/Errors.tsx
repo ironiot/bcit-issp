@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Card } from "@/components/Card";
+import { VehicleSummary } from "@/components/VehicleSummary";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { UNITS } from "@/metrics";
 import type { DtcRow, SampleData } from "@/types";
@@ -31,6 +32,8 @@ export function Errors() {
 			<header className={styles.errorsHeader}>
 				<h1>Errors</h1>
 			</header>
+
+			<VehicleSummary className={styles.vehicleSummary} />
 
 			<div className={styles.columns}>
 				<Card className={styles.leftCol} aria-label="Error details">

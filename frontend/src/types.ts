@@ -18,7 +18,7 @@ export interface VehicleInfo {
 	active_dtcs: string[];
 	first_measure: string | null;
 	last_measure: string | null;
-	distance: number;
+	distance: number | null;
 }
 
 export interface DriveCycle {

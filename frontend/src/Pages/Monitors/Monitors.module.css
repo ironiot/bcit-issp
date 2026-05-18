@@ -10,25 +10,6 @@
 		margin-bottom: 1rem;
 	}
 
-	.vehicleGrid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-		gap: 0.75rem 1rem;
-		margin: 0;
-	}
-
-	.vehicleGrid dt {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-		margin: 0;
-	}
-
-	.vehicleGrid dd {
-		margin: 0.15rem 0 0;
-		font-size: 0.95rem;
-		color: var(--color-text);
-	}
-
 	.chartToolbar {
 		display: flex;
 		align-items: center;

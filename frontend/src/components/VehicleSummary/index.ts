@@ -1,0 +1,1 @@
+export { VehicleSummary } from "./VehicleSummary";
