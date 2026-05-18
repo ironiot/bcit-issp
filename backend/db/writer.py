@@ -95,15 +95,16 @@ class DBWriter:
             self.samples_buffer.clear()
 
             if self.active_drive_cycle:
+                end_time = func.now()
                 if not self.active_drive_cycle.id:
                     drive = DriveCycle(
                         vin=self.vin,
                         start_time=self.active_drive_cycle.start_time,
-                        end_time=func.now(),
+                        end_time=end_time,
                     )
                     session.add(drive)
                 elif drive := await session.get(DriveCycle, self.active_drive_cycle.id):
-                    drive.end_time = func.now()
+                    drive.end_time = end_time
 
                 if drive:
                     await self._update_drive_cycle_distance(session, drive)
@@ -118,18 +119,35 @@ class DBWriter:
             self.active_drive_cycle = None
 
     async def _end_active_drive_cycles(self, session: AsyncSession):
-        # There should never be multiple active drive cycles for the same vehicle, but just in case, end them all.
-        # TODO: find a better way to enforce this
-
         if not self.vin:
             log.error("Cannot end active drive cycles: VIN not set")
             return
 
-        reader = DBReader(session)
+        # This function acts as a cleanup
+        # when we need to end the current active drive cycle but don't have a reference to it.
+        # + Ideally: Never need to be called
+        # + Realistic edge case: When the app crashes while the engine is on, it will miss the engine off event,
+        # so the latest drive cycle will remain active.
+        #   => Query the latest sample, use its timestamp as the drive cycle's end time.
+        # + Catastrophic edge case: Somehow the active drive cycle is not the most recent one.
+        #   => TODO: Handling this case is left as an exercise for the reader
 
-        for drive in await reader.get_drive_cycles(self.vin, active_only=True):
-            drive.end_time = func.now()
-            await self._update_drive_cycle_distance(session, drive)
+        reader = DBReader(session=session)
+        if not (
+            active_drives := await reader.get_drive_cycles(self.vin, active_only=True)
+        ):
+            return
+
+        latest_drive = active_drives[0]  # it's sorted by start_time desc
+
+        if latest_sample := await reader.get_latest_sample(self.vin):
+            latest_drive.end_time = latest_sample.timestamp
+            await self._update_drive_cycle_distance(session, latest_drive)
+        else:
+            await session.delete(latest_drive)
+
+        for drive in active_drives[1:]:
+            await session.delete(drive)
 
     async def _update_drive_cycle_distance(
         self, session: AsyncSession, drive: DriveCycle
