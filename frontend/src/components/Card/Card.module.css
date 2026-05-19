@@ -4,13 +4,19 @@
 	border: 2px solid var(--color-border-strong);
 	background: var(--color-surface);
 
-	&:hover {
-		border-color: var(--color-text-muted);
-	}
 	&.highlighted {
 		border-color: var(--color-accent);
 	}
-	&:active {
-		background-color: var(--color-bg);
+
+	&.interactive {
+		cursor: pointer;
+		user-select: none;
+		
+		&:hover:not(.highlighted) {
+			border-color: var(--color-text-muted);
+		}
+		&:active {
+			background-color: var(--color-bg);
+		}
 	}
 }

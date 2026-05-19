@@ -10,8 +10,15 @@ type CardProps = {
 	children: ReactNode;
 	style?: CSSProperties;
 	onClick?: () => void;
-}
+};
 
-export function Card({ highlighted = false, className, ...rest }: CardProps) {
-	return <div className={cx("card", { highlighted }, className)} {...rest} />;
+export function Card({ highlighted, onClick, className, ...rest }: CardProps) {
+	const interactive = onClick != null;
+	return (
+		<div
+			className={cx("card", { highlighted, interactive }, className)}
+			onClick={onClick}
+			{...rest}
+		/>
+	);
 }

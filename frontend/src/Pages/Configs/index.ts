@@ -1,1 +1,0 @@
-export { Configs } from "./Configs";

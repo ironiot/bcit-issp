@@ -7,18 +7,19 @@
 	color: var(--color-accent);
 	cursor: pointer;
 
-	&:hover {
-		background: rgb(from var(--color-accent) r g b / 0.15);
-		color: var(--color-text);
-	}
-
-	&:active {
-		background: rgb(from var(--color-accent) r g b / 0.3);
-	}
-
 	&:disabled {
 		color: var(--color-text-muted);
 		border-color: var(--color-border);
 		cursor: not-allowed;
+	}
+
+	&:not(:disabled) {
+		&:hover {
+			background: rgb(from var(--color-accent) r g b / 0.15);
+			color: var(--color-text);
+		}
+		&:active {
+			background: rgb(from var(--color-accent) r g b / 0.3);
+		}
 	}
 }

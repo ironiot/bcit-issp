@@ -3,7 +3,7 @@ import { Card } from "@/components/Card";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { UNITS } from "@/metrics";
 import type { VehicleInfo } from "@/types";
-import styles from "./Configs.module.css";
+import styles from "./VehicleSelection.module.css";
 
 const cx = classNames.bind(styles);
 

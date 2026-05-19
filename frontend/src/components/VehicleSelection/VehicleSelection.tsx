@@ -1,19 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
+import { useEffect, useState } from "react";
 import { apiGet } from "@/api";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { Grid } from "@/components/Grid";
+import { Modal } from "@/components/Modal";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import type { VehicleInfo } from "@/types";
-import styles from "./VehicleSummary.module.css";
+import { VehicleCard } from "./VehicleCard";
+import styles from "./VehicleSelection.module.css";
 
 const cx = classNames.bind(styles);
 
-interface VehicleSummaryProps {
-	className?: string;
-}
-
-export function VehicleSummary({ className }: VehicleSummaryProps) {
-	const [selectedVin] = useLocalStorage("selected-vin");
+export function VehicleSelection({ className }: { className?: string }) {
+	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
 
 	const {
 		data: vehicles = [],
@@ -24,11 +25,35 @@ export function VehicleSummary({ className }: VehicleSummaryProps) {
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
+	console.log(vehicles);
+
+	useEffect(() => {
+		// in case localStorage is stale (vehicle no longer exists)
+		if (
+			selectedVin &&
+			vehicles.length > 0 &&
+			!vehicles.some((v) => v.vin === selectedVin)
+		) {
+			selectVin("");
+		}
+		// auto select if there's only one vehicle
+		else if (vehicles.length === 1) {
+			selectVin(vehicles[0].vin);
+		}
+	}, [selectedVin, selectVin, vehicles]);
+
 	const vehicle = vehicles.find((v) => v.vin === selectedVin);
 
+	const [isVehicleListOpen, setOpenVehicleList] = useState(false);
+
 	return (
-		<Card className={cx("vehicle-summary", className)} aria-label="Vehicle">
-			<h2>Vehicle</h2>
+		<Card className={cx("vehicle-selection", className)} aria-label="Vehicle">
+			<div className={cx("header")}>
+				<h2>Vehicle</h2>
+				{vehicles.length > 1 && (
+					<Button onClick={() => setOpenVehicleList(true)} text="Select" />
+				)}
+			</div>
 			{isLoading ? (
 				<p className="muted">Loading vehicles…</p>
 			) : error ? (
@@ -81,6 +106,12 @@ export function VehicleSummary({ className }: VehicleSummaryProps) {
 					</div>
 				</dl>
 			)}
+			<Modal open={isVehicleListOpen} onClose={() => setOpenVehicleList(false)}>
+				<Grid
+					Item={VehicleCard}
+					data={vehicles.map((v) => ({ ...v, key: v.vin }))}
+				/>
+			</Modal>
 		</Card>
 	);
 }

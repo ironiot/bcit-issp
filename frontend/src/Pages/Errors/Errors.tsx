@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { VehicleSummary } from "@/components/VehicleSummary";
+import { VehicleSelection } from "@/components/VehicleSelection";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { METRICS_LABELS, UNITS } from "@/metrics";
 import type { DtcRow, SampleData } from "@/types";
@@ -35,7 +35,7 @@ export function Errors() {
 				<Button onClick={() => refetchDtcs()} text="Refresh" />
 			</header>
 
-			<VehicleSummary className={styles.vehicleSummary} />
+			<VehicleSelection className={styles.VehicleSelection} />
 
 			<div className={styles.columns}>
 				<Card className={styles.leftCol} aria-label="Error details">
