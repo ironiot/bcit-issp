@@ -8,6 +8,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        run:  actions/checkout@v4
+      - name: setup Python
+        run:  actions/setup-python@v5
       - name: cd into backend
         run:  cd backend
       - name: test
