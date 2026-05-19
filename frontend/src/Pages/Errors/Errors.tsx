@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -11,7 +11,11 @@ import type { DtcRow, SampleData } from "@/types";
 import styles from "./Errors.module.css";
 
 export function Errors() {
-	const [selectedVin] = useLocalStorage("selected-vin");
+	const [storedVin] = useLocalStorage("selected-vin");
+	const [searchParams, setSearchParams] = useSearchParams();
+	const urlVin = searchParams.get("vin");
+
+	const selectedVin = urlVin ?? storedVin;
 
 	const { data: dtcs = [], refetch: refetchDtcs } = useQuery({
 		queryKey: ["dtcs", selectedVin],
@@ -20,13 +24,34 @@ export function Errors() {
 		enabled: !!selectedVin,
 	});
 
-	const [selected, setSelected] = useState<DtcRow | undefined>();
-	// default select the first active DTC if it exists
+	const urlDtcId = searchParams.get("dtc");
+	const [selectedDtc, setSelectedDtc] = useState<DtcRow | undefined>();
+
 	useEffect(() => {
-		setSelected(
+		// select the DTC from the URL if it exists
+		if (urlDtcId) {
+			const dtcFromUrl = dtcs.find((d) => String(d.id) === urlDtcId);
+			if (dtcFromUrl) {
+				setSelectedDtc(dtcFromUrl);
+				return;
+			}
+		}
+		// otherwise select the first active DTC by default
+		setSelectedDtc(
 			(current) => current || dtcs.find((d) => d.cleared_at === null),
 		);
-	}, [dtcs]);
+	}, [dtcs, urlDtcId]);
+
+	const selectDtc = (dtc: DtcRow) => {
+		setSelectedDtc(dtc);
+		if (urlVin) {
+			const newParams = new URLSearchParams();
+			newParams.set("vin", urlVin);
+			setSearchParams(newParams, { replace: true });
+		} else {
+			setSearchParams({}, { replace: true });
+		}
+	};
 
 	return (
 		<div className={styles.errors}>
@@ -39,27 +64,27 @@ export function Errors() {
 
 			<div className={styles.columns}>
 				<Card className={styles.leftCol} aria-label="Error details">
-					{!selected ? (
+					{!selectedDtc ? (
 						<p className="muted">No errors</p>
 					) : (
 						<>
 							<h2>
-								{selected.code}: {selected.description}
+								{selectedDtc.code}: {selectedDtc.description}
 							</h2>
 
 							<dl className={styles.detailGrid}>
 								<div>
 									<dt>Timestamp</dt>
-									<dd>{new Date(selected.timestamp).toLocaleString()}</dd>
+									<dd>{new Date(selectedDtc.timestamp).toLocaleString()}</dd>
 								</div>
 								<div>
 									<dt>Status</dt>
-									<dd>{selected.cleared_at ? "Cleared" : "Active"}</dd>
+									<dd>{selectedDtc.cleared_at ? "Cleared" : "Active"}</dd>
 								</div>
 							</dl>
 
 							<h3>Freeze frame</h3>
-							{selected.freeze_frame ? (
+							{selectedDtc.freeze_frame ? (
 								<table className={styles.freezeTable}>
 									<thead>
 										<tr>
@@ -68,7 +93,7 @@ export function Errors() {
 										</tr>
 									</thead>
 									<tbody>
-										{Object.entries(selected.freeze_frame as SampleData).map(
+										{Object.entries(selectedDtc.freeze_frame as SampleData).map(
 											([metric, value]) => (
 												<tr key={metric}>
 													{value === null ||
@@ -89,12 +114,13 @@ export function Errors() {
 							) : (
 								<p className="muted">No freeze frame data</p>
 							)}
-							{/* Definitely a TODO, not sure if link to monitors even fully works */}
 							<p className={styles.monitorLink}>
 								<Link
-									to={`/monitors?vin=${encodeURIComponent(
-										selected.vin,
-									)}&ts=${encodeURIComponent(selected.timestamp)}`}
+									to={
+										"/monitors" +
+										`?vin=${encodeURIComponent(selectedVin ?? "")}` +
+										`&dtc_ts=${encodeURIComponent(selectedDtc.timestamp)}`
+									}
 								>
 									Open in Monitors
 								</Link>
@@ -113,9 +139,9 @@ export function Errors() {
 									<button
 										type="button"
 										className={`${styles.errorItem} ${
-											selected?.id === d.id ? styles.selected : ""
+											selectedDtc?.id === d.id ? styles.selected : ""
 										}`}
-										onClick={() => setSelected(d)}
+										onClick={() => selectDtc(d)}
 										title={d.description ?? ""}
 									>
 										<strong>

@@ -30,7 +30,7 @@ export interface DriveCycle {
 }
 
 export interface DtcRow {
-	id: number;
+	id: string;
 	vin: string;
 	code: string;
 	description: string | null;

@@ -51,7 +51,7 @@ export function Monitors() {
 		queryKey: ["driveCycles", selectedVin],
 		queryFn: () =>
 			apiGet<DriveCycle[]>(
-				`/data/drives_cycles/${encodeURIComponent(selectedVin!)}`,
+				`/data/drives_cycles/${encodeURIComponent(selectedVin ?? "")}`,
 			),
 		enabled: !!selectedVin,
 	});
@@ -252,7 +252,15 @@ export function Monitors() {
 												{cycleDtcs[Number(epochMs)].map(
 													({ id, code }, index, array) => (
 														<Fragment key={id}>
-															<Link to={`/errors?dtc=${id}`}>{code}</Link>
+															<Link
+																to={
+																	"/errors" +
+																	`?vin=${encodeURIComponent(selectedVin ?? "")}` +
+																	`&dtc=${encodeURIComponent(id)}`
+																}
+															>
+																{code}
+															</Link>
 															{index < array.length - 1 ? ", " : ""}
 														</Fragment>
 													),

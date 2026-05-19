@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -14,7 +15,7 @@ import styles from "./VehicleSelection.module.css";
 const cx = classNames.bind(styles);
 
 export function VehicleSelection({ className }: { className?: string }) {
-	const [selectedVin, selectVin] = useLocalStorage("selected-vin");
+	const [storedVin, setStoredVin] = useLocalStorage("selected-vin");
 
 	const {
 		data: vehicles = [],
@@ -25,21 +26,33 @@ export function VehicleSelection({ className }: { className?: string }) {
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
+	const [searchParams, setSearchParams] = useSearchParams();
+	const urlVin = searchParams.get("vin");
+	const prevStoredVinRef = useRef(storedVin);
+
+	useEffect(() => {
+		// to clear the url params if user manually switches vehicle
+		if (urlVin && prevStoredVinRef.current !== storedVin) {
+			setSearchParams({}, { replace: true });
+		}
+		prevStoredVinRef.current = storedVin;
+	}, [storedVin, setSearchParams, urlVin]);
+
 	useEffect(() => {
 		if (vehicles.length === 0) {
 			return;
 		}
 		// auto-select the first vehicle if none is selected yet
-		if (!selectedVin) {
-			selectVin(vehicles[0].vin);
+		if (!storedVin) {
+			setStoredVin(vehicles[0].vin);
 		}
 		// in case localStorage is stale (vehicle no longer exists)
-		else if (!vehicles.map((v) => v.vin).includes(selectedVin)) {
-			selectVin("");
+		else if (!vehicles.map((v) => v.vin).includes(storedVin)) {
+			setStoredVin("");
 		}
-	}, [selectedVin, selectVin, vehicles]);
+	}, [storedVin, setStoredVin, vehicles]);
 
-	const vehicle = vehicles.find((v) => v.vin === selectedVin);
+	const vehicle = vehicles.find((v) => v.vin === storedVin);
 
 	const [isVehicleListOpen, setOpenVehicleList] = useState(false);
 
