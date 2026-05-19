@@ -79,6 +79,7 @@ class DBWriter:
         async with self.session_factory() as session:
             # in case app crashed without ending the previous drive cycle
             await self._end_active_drive_cycles(session)
+            await session.commit()
 
         self.active_drive_cycle = ActiveDriveCycle(id=None)
         # id None means it's not committed to the DB yet
