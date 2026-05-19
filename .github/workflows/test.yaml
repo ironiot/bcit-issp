@@ -3,14 +3,16 @@ name: test-on-dev
 on: 
   push:
     branches:
-      - 'dev'
+      - "dev"
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses:  actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: setup Python
-        uses:  actions/setup-python@v5
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
       - name: test
-        working-directory: backend
+        working-directory: backend/
         run:  ./run_test.sh 
