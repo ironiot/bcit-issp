@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - 'dev'
-
-test:
-  runs-on: ubuntu-latest
-  steps:
-    - name: cd into backend
-      run:  cd backend
-    - name: test
-      run:  ./run_test.sh 
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: cd into backend
+        run:  cd backend
+      - name: test
+        run:  ./run_test.sh 
