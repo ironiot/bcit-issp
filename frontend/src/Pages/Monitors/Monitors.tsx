@@ -182,64 +182,66 @@ export function Monitors() {
 					)}
 				</Card>
 
-				<Card className={cx("card")} aria-label="Signals">
-					<div className={cx("chartToolbar")}>
-						<h2>Signals</h2>
-						<Button
-							onClick={() => setOpenMetricsFilter(true)}
-							text="Select metrics"
-						/>
-					</div>
-					<MetricSelection
-						open={isMetricsFilterOpen}
-						onClose={() => setOpenMetricsFilter(false)}
-					/>
-					{isMetricsFilterOpen ? null : chartLoading ? (
-						<p className="muted">Loading samples…</p>
-					) : !selectedMetrics.length ? (
-						<p className="muted">No metrics selected.</p>
-					) : !chartPoints.length ? (
-						<p className="muted">No samples for this drive cycle.</p>
-					) : (
-						<div className={cx("chartGrid")}>
-							{selectedMetrics.map((metric) => (
-								<SignalChart
-									key={metric}
-									metric={metric}
-									data={chartPoints}
-									cycleDtcs={cycleDtcs}
-									onClick={() => highlightMetric(metric)}
-								/>
-							))}
-							<Modal
-								open={highlightedMetric !== undefined}
-								onClose={() => highlightMetric(undefined)}
-							>
-								<Card className={cx("chartModal")}>
-									{highlightedMetric && (
-										<SignalChart
-											metric={highlightedMetric}
-											data={chartPoints}
-											cycleDtcs={cycleDtcs}
-											height={400}
-										/>
-									)}
-								</Card>
-							</Modal>
+				{selectedCycleId && (
+					<Card className={cx("card")} aria-label="Signals">
+						<div className={cx("chartToolbar")}>
+							<h2>Signals</h2>
+							<Button
+								onClick={() => setOpenMetricsFilter(true)}
+								text="Select metrics"
+							/>
 						</div>
-					)}
-					{cycleDtcs.length > 0 && (
-						<ul className={`${cx("dtcLinks")} muted`}>
-							{cycleDtcs.map((d) => (
-								<li key={d.id}>
-									<Link to={`/errors?dtc=${d.id}`}>
-										{d.code} at {formatTime(d.timestamp)}
-									</Link>
-								</li>
-							))}
-						</ul>
-					)}
-				</Card>
+						<MetricSelection
+							open={isMetricsFilterOpen}
+							onClose={() => setOpenMetricsFilter(false)}
+						/>
+						{isMetricsFilterOpen ? null : chartLoading ? (
+							<p className="muted">Loading samples…</p>
+						) : !selectedMetrics.length ? (
+							<p className="muted">No metrics selected.</p>
+						) : !chartPoints.length ? (
+							<p className="muted">No samples for this drive cycle.</p>
+						) : (
+							<div className={cx("chartGrid")}>
+								{selectedMetrics.map((metric) => (
+									<SignalChart
+										key={metric}
+										metric={metric}
+										data={chartPoints}
+										cycleDtcs={cycleDtcs}
+										onClick={() => highlightMetric(metric)}
+									/>
+								))}
+								<Modal
+									open={highlightedMetric !== undefined}
+									onClose={() => highlightMetric(undefined)}
+								>
+									<Card className={cx("chartModal")}>
+										{highlightedMetric && (
+											<SignalChart
+												metric={highlightedMetric}
+												data={chartPoints}
+												cycleDtcs={cycleDtcs}
+												height={400}
+											/>
+										)}
+									</Card>
+								</Modal>
+							</div>
+						)}
+						{cycleDtcs.length > 0 && (
+							<ul className={`${cx("dtcLinks")} muted`}>
+								{cycleDtcs.map((d) => (
+									<li key={d.id}>
+										<Link to={`/errors?dtc=${d.id}`}>
+											{d.code} at {formatTime(d.timestamp)}
+										</Link>
+									</li>
+								))}
+							</ul>
+						)}
+					</Card>
+				)}
 			</div>
 		</div>
 	);
