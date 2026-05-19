@@ -352,16 +352,18 @@ export function Monitors() {
 				open={highlightedMetric !== undefined}
 				onClose={() => highlightMetric(undefined)}
 			>
-				<Card className={cx("modalContent")}>
-					{highlightedMetric && (
-						<SignalChart
-							metric={highlightedMetric}
-							data={chartPoints}
-							cycleDtcs={cycleDtcs}
-							height={400}
-						/>
-					)}
-				</Card>
+				<div>
+					<Card className={cx("modalContent")}>
+						{highlightedMetric && (
+							<SignalChart
+								metric={highlightedMetric}
+								data={chartPoints}
+								cycleDtcs={cycleDtcs}
+								height={400}
+							/>
+						)}
+					</Card>
+				</div>
 			</Modal>
 		</div>
 	);
