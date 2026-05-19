@@ -25,20 +25,17 @@ export function VehicleSelection({ className }: { className?: string }) {
 		queryFn: () => apiGet<VehicleInfo[]>("/data/vehicles"),
 	});
 
-	console.log(vehicles);
-
 	useEffect(() => {
-		// in case localStorage is stale (vehicle no longer exists)
-		if (
-			selectedVin &&
-			vehicles.length > 0 &&
-			!vehicles.some((v) => v.vin === selectedVin)
-		) {
-			selectVin("");
+		if (vehicles.length === 0) {
+			return;
 		}
-		// auto select if there's only one vehicle
-		else if (vehicles.length === 1) {
+		// auto-select the first vehicle if none is selected yet
+		if (!selectedVin) {
 			selectVin(vehicles[0].vin);
+		}
+		// in case localStorage is stale (vehicle no longer exists)
+		else if (!vehicles.map((v) => v.vin).includes(selectedVin)) {
+			selectVin("");
 		}
 	}, [selectedVin, selectVin, vehicles]);
 
