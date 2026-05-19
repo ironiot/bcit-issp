@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-pip install setuptools
+pip install "setuptools<81"
 pip install virtualenv
 virtualenv .venv
 source .venv/bin/activate
