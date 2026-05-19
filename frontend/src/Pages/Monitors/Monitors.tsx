@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
 	CartesianGrid,
@@ -123,15 +123,26 @@ export function Monitors() {
 	}, [samples, selectedMetrics]);
 
 	const cycleDtcs = useMemo(() => {
-		if (!selectedCycle) return [];
+		if (!selectedCycle) {
+			return {};
+		}
+
 		const start = new Date(selectedCycle.start_time).getTime();
 		const end = selectedCycle.end_time
 			? new Date(selectedCycle.end_time).getTime()
 			: Number.POSITIVE_INFINITY;
-		return dtcs.filter((d) => {
-			const t = new Date(d.timestamp).getTime();
-			return t >= start && t <= end;
-		});
+
+		const map: Record<number, DtcRow[]> = {};
+		dtcs
+			.filter((d) => {
+				const t = new Date(d.timestamp).getTime();
+				return t >= start && t <= end;
+			})
+			.forEach((d) => {
+				const t = Math.round(new Date(d.timestamp).getTime() / 1000) * 1000;
+				map[t] = [...(map[t] ?? []), d];
+			});
+		return map;
 	}, [selectedCycle, dtcs]);
 
 	const [isMetricsFilterOpen, setOpenMetricsFilter] = useState(false);
@@ -208,7 +219,7 @@ export function Monitors() {
 										key={metric}
 										metric={metric}
 										data={chartPoints}
-										cycleDtcs={cycleDtcs}
+										dtcTimes={Object.keys(cycleDtcs).map(Number)}
 										onClick={() => highlightMetric(metric)}
 									/>
 								))}
@@ -221,7 +232,7 @@ export function Monitors() {
 											<SignalChart
 												metric={highlightedMetric}
 												data={chartPoints}
-												cycleDtcs={cycleDtcs}
+												dtcTimes={Object.keys(cycleDtcs).map(Number)}
 												height={400}
 											/>
 										)}
@@ -229,16 +240,28 @@ export function Monitors() {
 								</Modal>
 							</div>
 						)}
-						{cycleDtcs.length > 0 && (
-							<ul className={`${cx("dtcLinks")} muted`}>
-								{cycleDtcs.map((d) => (
-									<li key={d.id}>
-										<Link to={`/errors?dtc=${d.id}`}>
-											{d.code} at {formatTime(d.timestamp)}
-										</Link>
-									</li>
-								))}
-							</ul>
+						{Object.keys(cycleDtcs).length > 0 && (
+							<>
+								<h4 className={cx("dtcHeader")}>Errors:</h4>
+								<ul className={cx("dtcLinks")}>
+									{Object.keys(cycleDtcs).map((epochMs) => {
+										const time = new Date(Number(epochMs)).toLocaleString();
+										return (
+											<li key={epochMs}>
+												<span className={cx("dtcTime")}>{time}</span>
+												{cycleDtcs[Number(epochMs)].map(
+													({ id, code }, index, array) => (
+														<Fragment key={id}>
+															<Link to={`/errors?dtc=${id}`}>{code}</Link>
+															{index < array.length - 1 ? ", " : ""}
+														</Fragment>
+													),
+												)}
+											</li>
+										);
+									})}
+								</ul>
+							</>
 						)}
 					</Card>
 				)}
@@ -276,7 +299,7 @@ type ChartPoint = { timeMs: number } & Record<string, number | null>;
 type SignalChartProps = {
 	metric: Metric;
 	data: ChartPoint[];
-	cycleDtcs: DtcRow[];
+	dtcTimes: number[];
 	height?: number;
 	onClick?: () => void;
 };
@@ -284,7 +307,7 @@ type SignalChartProps = {
 function SignalChart({
 	metric,
 	data,
-	cycleDtcs,
+	dtcTimes,
 	height = 220,
 	onClick,
 }: SignalChartProps) {
@@ -301,7 +324,12 @@ function SignalChart({
 				<ResponsiveContainer width="100%" height={height}>
 					<LineChart
 						data={data}
-						margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+						margin={{
+							top: dtcTimes.length ? 16 : 0,
+							right: 12,
+							left: 0,
+							bottom: 0,
+						}}
 					>
 						<CartesianGrid
 							stroke="var(--color-chart-grid)"
@@ -350,17 +378,17 @@ function SignalChart({
 							strokeWidth={2}
 							connectNulls
 						/>
-						{cycleDtcs.map((d) => (
+						{dtcTimes.map((time) => (
 							<ReferenceLine
-								key={d.id}
-								x={new Date(d.timestamp).getTime()}
+								key={time}
+								x={Number(time)}
 								stroke="var(--color-chart-dtc)"
 								strokeWidth={2}
-								strokeOpacity={0.95}
+								strokeDasharray={8}
 								label={{
-									value: d.code,
+									value: "⚠",
 									fill: "var(--color-chart-dtc)",
-									fontSize: 9,
+									fontSize: 14,
 									position: "top",
 								}}
 							/>

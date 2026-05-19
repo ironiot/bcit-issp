@@ -9,7 +9,7 @@
 	--color-chart-grid: rgba(238, 238, 238, 0.1);
 	--color-chart-axis: rgba(238, 238, 238, 0.55);
 	--color-chart-line: #eeeeee;
-	--color-chart-dtc: #d65a31;
+	--color-chart-dtc: rgba(238, 238, 238, 0.8);
 	--color-error-bg: rgba(214, 90, 49, 0.18);
 	--color-error-border: #d65a31;
 	--color-error-text: #eeeeee;

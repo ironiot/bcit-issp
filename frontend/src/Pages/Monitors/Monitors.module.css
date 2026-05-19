@@ -65,19 +65,34 @@
 		min-height: 220px;
 	}
 
+	h4.dtcHeader {
+		font-weight: inherit;
+		margin-bottom: 0;
+	}
+
 	.dtcLinks {
-		margin: 0.75rem 0 0;
-		padding-left: 1.1rem;
-		font-size: 0.9rem;
-	}
+		margin-top: 0.4rem;
+		padding-left: 1.5rem;
 
-	.dtcLinks a {
-		color: var(--color-accent);
-	}
+		li {
+			margin-top: 0.2rem;
+			color: var(--color-text-muted);
 
-	.dtcLinks a:hover {
-		color: var(--color-text);
-		text-decoration: underline;
+			.dtcTime {
+				margin-right: 0.5rem;
+				&::after {
+					content: ":";
+				}
+			}
+
+			a {
+				color: var(--color-accent);
+				&:hover {
+					color: var(--color-text);
+					text-decoration: underline;
+				}
+			}
+		}
 	}
 
 	.btnRefresh {
