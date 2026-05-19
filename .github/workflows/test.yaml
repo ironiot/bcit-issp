@@ -11,7 +11,6 @@ jobs:
       - uses:  actions/checkout@v4
       - name: setup Python
         uses:  actions/setup-python@v5
-      - name: cd into backend
-        run:  cd backend
       - name: test
+        working-directory: backend
         run:  ./run_test.sh 
