@@ -13,3 +13,12 @@ export async function apiGet<T>(path: string): Promise<T> {
 	}
 	return res.json() as Promise<T>;
 }
+
+export async function apiPost<T>(path: string): Promise<T> {
+	const res = await fetch(apiUrl(path), { method: "POST" });
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`${res.status} ${res.statusText}: ${text.slice(0, 240)}`);
+	}
+	return res.json() as Promise<T>;
+}

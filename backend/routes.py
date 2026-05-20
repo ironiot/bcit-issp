@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
+from db.model import Dtc
 from db.reader import DBReader
 from collector import ENGINE_ON_VOLTAGE
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy import update
 
 router = APIRouter()
 
@@ -179,3 +181,17 @@ async def clear_dtcs(request: Request):
         )
     ok = await obd_client.clear_dtcs()
     return {"cleared": ok}
+
+
+@router.post("/dtcs/clear/db/{vin}")
+async def clear_dtcs_db(vin: str, request: Request):
+    # Demo-only: marks all active DTCs for the VIN as cleared by writing
+    # cleared_at directly.
+    async with request.app.state.db_session_factory() as session:
+        result = await session.execute(
+            update(Dtc)
+            .where(Dtc.vin == vin, Dtc.cleared_at.is_(None))
+            .values(cleared_at=datetime.now(timezone.utc))
+        )
+        await session.commit()
+    return {"cleared": result.rowcount}

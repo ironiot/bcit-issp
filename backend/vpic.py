@@ -30,17 +30,23 @@ async def fetch_vpic_data(client: ClientSession, vin: str) -> VPICVehicleInfo | 
             results = {item["Variable"]: item["Value"] for item in data["Results"]}
             log.info(f"VPIC data: {results}")
 
+            # 50 char limit check
+            def cap(s: str | None) -> str | None:
+                return s[:50] if s else s
+
             return VPICVehicleInfo(
-                model=(
-                    f"{results.get('Make') or ''} "
-                    f"{results.get('Model') or ''} "
-                    f"{results.get('Model Year') or ''}"
-                ).strip()
-                or None,
-                body_type=results.get("Body Class"),
-                fuel_type=results.get("Fuel Type - Primary"),
-                transmission=results.get("Transmission Style"),
-                drive_type=results.get("Drive Type"),
+                model=cap(
+                    (
+                        f"{results.get('Make') or ''} "
+                        f"{results.get('Model') or ''} "
+                        f"{results.get('Model Year') or ''}"
+                    ).strip()
+                    or None
+                ),
+                body_type=cap(results.get("Body Class")),
+                fuel_type=cap(results.get("Fuel Type - Primary")),
+                transmission=cap(results.get("Transmission Style")),
+                drive_type=cap(results.get("Drive Type")),
             )
     except Exception as e:
         log.error(f"Error fetching VPIC data for {vin=}: {e}")

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import obd
 
-OBD_URL = "socket://127.0.0.1:35000"
+OBD_URL = os.getenv("OBD_URL", "socket://127.0.0.1:35000")
 
 log = logging.getLogger("obd_client")
 if os.getenv("OBD_DEBUG"):
@@ -151,7 +151,10 @@ class OBDClient:
             return await asyncio.to_thread(self._read_vehicle_sync)
 
     def _read_vehicle_sync(self) -> OBDVehicleInfo | None:
-        if not (vin := self._read_vin_sync()):
+        if override := os.getenv("OBD_VIN_OVERRIDE"):
+            vin = override
+            log.info("using VIN override: %s", vin)
+        elif not (vin := self._read_vin_sync()):
             log.info("VIN is null")
             return None
 

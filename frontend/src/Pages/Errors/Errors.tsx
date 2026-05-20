@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { apiGet } from "@/api";
+import { apiGet, apiPost } from "@/api";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { VehicleSelection } from "@/components/VehicleSelection";
@@ -57,7 +57,22 @@ export function Errors() {
 		<div className={styles.errors}>
 			<header className={styles.errorsHeader}>
 				<h1>Errors</h1>
-				<Button onClick={() => refetchDtcs()} text="Refresh" />
+				<div className={styles.headerActions}>
+					<Button onClick={() => refetchDtcs()} text="Refresh" />
+					<Button
+						onClick={async () => {
+							if (!selectedVin) return;
+							await apiPost(
+								`/dtcs/clear/db/${encodeURIComponent(selectedVin)}`,
+							);
+							refetchDtcs();
+						}}
+						text="Clear DTCs"
+						disabled={
+							!selectedVin || !dtcs.some((d) => d.cleared_at === null)
+						}
+					/>
+				</div>
 			</header>
 
 			<VehicleSelection className={styles.VehicleSelection} />
