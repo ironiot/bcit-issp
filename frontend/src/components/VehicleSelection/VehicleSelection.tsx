@@ -32,10 +32,14 @@ export function VehicleSelection({ className }: { className?: string }) {
 
 	useEffect(() => {
 		// to clear the url params if user manually switches vehicle
-		if (urlVin && prevStoredVinRef.current !== storedVin) {
-			setSearchParams({}, { replace: true });
+		if (prevStoredVinRef.current !== storedVin) {
+			if (urlVin) {
+				//  because every other param depends on vin,
+				//  changing vin invalidates all params
+				setSearchParams({}, { replace: true });
+			}
+			prevStoredVinRef.current = storedVin;
 		}
-		prevStoredVinRef.current = storedVin;
 	}, [storedVin, setSearchParams, urlVin]);
 
 	useEffect(() => {
