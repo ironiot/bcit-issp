@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import classNames from "classnames/bind";
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
 	CartesianGrid,
 	Line,
@@ -31,10 +31,29 @@ import styles from "./Monitors.module.css";
 const cx = classNames.bind(styles);
 
 export function Monitors() {
-	const [selectedVin] = useLocalStorage("selected-vin");
+	const [storedVin] = useLocalStorage("selected-vin");
+	const [searchParams, setSearchParams] = useSearchParams();
+	const urlVin = searchParams.get("vin");
+	const urlDriveCycleId = searchParams.get("drive_id");
+
+	const selectedVin = urlVin ?? storedVin;
 	const [metricsSelection] = useLocalStorage("metrics-selection");
 
-	const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+	const [selectedCycleId, setSelectedCycleId] = useState(urlDriveCycleId);
+	const selectDriveCycle = useCallback(
+		(id: string) => {
+			setSelectedCycleId(id);
+			if (urlVin) {
+				const newParams = new URLSearchParams();
+				newParams.set("vin", urlVin);
+				setSearchParams(newParams, { replace: true });
+			} else {
+				setSearchParams({}, { replace: true });
+			}
+		},
+		[setSearchParams, urlVin],
+	);
+
 	const [highlightedMetric, highlightMetric] = useState<Metric>();
 
 	const selectedMetrics = useMemo(
@@ -51,25 +70,22 @@ export function Monitors() {
 		queryKey: ["driveCycles", selectedVin],
 		queryFn: () =>
 			apiGet<DriveCycle[]>(
-				`/data/drives_cycles/${encodeURIComponent(selectedVin ?? "")}`,
+				`/data/drives_cycles/${encodeURIComponent(selectedVin!)}`,
 			),
 		enabled: !!selectedVin,
 	});
 
 	useEffect(() => {
-		if (!driveCycles.length) {
-			setSelectedCycleId(null);
-			return;
-		}
+		// auto-select the first drive cycle if none is selected yet
 		if (
-			!selectedCycleId ||
-			!driveCycles.some((c) => c.id === selectedCycleId)
+			driveCycles.length &&
+			(!selectedCycleId || !driveCycles.some((c) => c.id === selectedCycleId))
 		) {
-			setSelectedCycleId(driveCycles[0].id);
+			selectDriveCycle(driveCycles[0].id);
 		}
-	}, [driveCycles, selectedCycleId]);
+	}, [driveCycles, selectDriveCycle, selectedCycleId]);
 
-	const selectedCycle = useMemo(
+	const selectedDriveCycle = useMemo(
 		() => driveCycles.find((c) => c.id === selectedCycleId) ?? null,
 		[driveCycles, selectedCycleId],
 	);
@@ -123,13 +139,13 @@ export function Monitors() {
 	}, [samples, selectedMetrics]);
 
 	const cycleDtcs = useMemo(() => {
-		if (!selectedCycle) {
+		if (!selectedDriveCycle) {
 			return {};
 		}
 
-		const start = new Date(selectedCycle.start_time).getTime();
-		const end = selectedCycle.end_time
-			? new Date(selectedCycle.end_time).getTime()
+		const start = new Date(selectedDriveCycle.start_time).getTime();
+		const end = selectedDriveCycle.end_time
+			? new Date(selectedDriveCycle.end_time).getTime()
 			: Number.POSITIVE_INFINITY;
 
 		const map: Record<number, DtcRow[]> = {};
@@ -143,7 +159,7 @@ export function Monitors() {
 				map[t] = [...(map[t] ?? []), d];
 			});
 		return map;
-	}, [selectedCycle, dtcs]);
+	}, [selectedDriveCycle, dtcs]);
 
 	const [isMetricsFilterOpen, setOpenMetricsFilter] = useState(false);
 
@@ -179,7 +195,7 @@ export function Monitors() {
 							<span>Trip</span>
 							<select
 								value={selectedCycleId ?? ""}
-								onChange={(e) => setSelectedCycleId(e.target.value)}
+								onChange={(e) => selectDriveCycle(e.target.value)}
 							>
 								{driveCycles.map((dc) => (
 									<option key={dc.id} value={dc.id}>

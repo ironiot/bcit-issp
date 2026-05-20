@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiGet } from "@/api";
 import { Button } from "@/components/Button";
@@ -7,7 +7,7 @@ import { Card } from "@/components/Card";
 import { VehicleSelection } from "@/components/VehicleSelection";
 import { useLocalStorage } from "@/hooks/LocalStorage";
 import { METRICS_LABELS, UNITS } from "@/metrics";
-import type { DtcRow, SampleData } from "@/types";
+import type { DriveCycle, DtcRow, SampleData } from "@/types";
 import styles from "./Errors.module.css";
 
 export function Errors() {
@@ -20,12 +20,39 @@ export function Errors() {
 	const { data: dtcs = [], refetch: refetchDtcs } = useQuery({
 		queryKey: ["dtcs", selectedVin],
 		queryFn: () =>
-			apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin ?? "")}`),
+			apiGet<DtcRow[]>(`/data/dtcs/${encodeURIComponent(selectedVin!)}`),
 		enabled: !!selectedVin,
 	});
 
 	const urlDtcId = searchParams.get("dtc");
 	const [selectedDtc, setSelectedDtc] = useState<DtcRow | undefined>();
+
+	const { data: driveCycles = [], refetch: refetchDriveCycles } = useQuery({
+		queryKey: ["driveCycles", selectedVin],
+		queryFn: () =>
+			apiGet<DriveCycle[]>(
+				`/data/drives_cycles/${encodeURIComponent(selectedVin!)}`,
+			),
+		enabled: !!selectedVin,
+	});
+
+	const driveCycleMap = useMemo(() => {
+		return Object.fromEntries(
+			dtcs.map(({ id, timestamp }) => {
+				const dtcTime = new Date(timestamp).getTime();
+				const matchingCycle = driveCycles.find((c) => {
+					const start = new Date(c.start_time).getTime();
+					const end = c.end_time ? new Date(c.end_time).getTime() : Infinity;
+					return start <= dtcTime && end >= dtcTime;
+				});
+				return [id, matchingCycle];
+			}),
+		);
+	}, [driveCycles, dtcs]);
+
+	const selectedDriveCycleId = selectedDtc
+		? driveCycleMap[selectedDtc.id]?.id
+		: undefined;
 
 	useEffect(() => {
 		// select the DTC from the URL if it exists
@@ -57,7 +84,13 @@ export function Errors() {
 		<div className={styles.errors}>
 			<header className={styles.errorsHeader}>
 				<h1>Errors</h1>
-				<Button onClick={() => refetchDtcs()} text="Refresh" />
+				<Button
+					onClick={() => {
+						refetchDtcs();
+						refetchDriveCycles();
+					}}
+					text="Refresh"
+				/>
 			</header>
 
 			<VehicleSelection className={styles.VehicleSelection} />
@@ -114,17 +147,20 @@ export function Errors() {
 							) : (
 								<p className="muted">No freeze frame data</p>
 							)}
-							<p className={styles.monitorLink}>
-								<Link
-									to={
-										"/monitors" +
-										`?vin=${encodeURIComponent(selectedVin ?? "")}` +
-										`&dtc_ts=${encodeURIComponent(selectedDtc.timestamp)}`
-									}
-								>
-									Open in Monitors
-								</Link>
-							</p>
+							{selectedVin && selectedDriveCycleId && (
+								<p className={styles.monitorLink}>
+									<Link
+										to={
+											"/?vin=" +
+											encodeURIComponent(selectedVin) +
+											"&drive_id=" +
+											encodeURIComponent(selectedDriveCycleId)
+										}
+									>
+										Open in Monitors
+									</Link>
+								</p>
+							)}
 						</>
 					)}
 				</Card>
