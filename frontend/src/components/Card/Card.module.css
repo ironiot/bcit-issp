@@ -1,0 +1,22 @@
+.card {
+	padding: 1rem;
+	border-radius: 8px;
+	border: 2px solid var(--color-border-strong);
+	background: var(--color-surface);
+
+	&.highlighted {
+		border-color: var(--color-accent);
+	}
+
+	&.interactive {
+		cursor: pointer;
+		user-select: none;
+		
+		&:hover:not(.highlighted) {
+			border-color: var(--color-text-muted);
+		}
+		&:active {
+			background-color: var(--color-bg);
+		}
+	}
+}

@@ -1,0 +1,74 @@
+.vehicle-selection {
+	.header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 0.75rem;
+
+		h2 {
+			font-size: 1.05rem;
+			margin: 0;
+			color: var(--color-text);
+		}
+
+		button {
+			padding: 0.2em 0.4em;
+		}
+	}
+
+	.vehicle-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+		gap: 0.75rem 1rem;
+		margin: 0;
+
+		dt {
+			font-size: 0.75rem;
+			color: var(--color-text-muted);
+			margin: 0;
+		}
+
+		dd {
+			margin: 0.15rem 0 0;
+			font-size: 0.95rem;
+			color: var(--color-text);
+		}
+	}
+}
+
+.vehicle-card {
+	padding: 1.5rem;
+	background-color: var(--color-surface);
+
+	h2 {
+		margin: 0 0 1rem 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	table {
+		width: 100%;
+		font-size: 0.95rem;
+
+		tr {
+			display: flex;
+			padding: 0.25rem 0;
+			gap: 8px;
+		}
+
+		th {
+			font-weight: 600;
+			color: var(--color-text-muted);
+			text-align: left;
+			flex: 0 0 auto;
+		}
+
+		td {
+			text-align: right;
+			color: var(--color-text);
+			flex: 1;
+		}
+	}
+}

@@ -1,0 +1,45 @@
+import type { Metric } from "./metrics";
+
+/**
+ * Vehicle row plus aggregates from `GET /data/vehicles`.
+ */
+export interface VehicleInfo {
+	vin: string;
+	calibration_id: string | null;
+	cvn: string | null;
+	supported_metrics: Metric[];
+	model: string | null;
+	body_type: string | null;
+	fuel_type: string | null;
+	transmission: string | null;
+	drive_type: string | null;
+	drive_cycles_count: number;
+	total_dtcs_count: number;
+	active_dtcs: string[];
+	first_measure: string | null;
+	last_measure: string | null;
+	distance: number | null;
+}
+
+export interface DriveCycle {
+	id: string;
+	vin: string;
+	start_time: string;
+	end_time: string | null;
+	distance: number | null;
+}
+
+export interface DtcRow {
+	id: string;
+	vin: string;
+	code: string;
+	description: string | null;
+	timestamp: string;
+	cleared_at: string | null;
+	freeze_frame: SampleData | null;
+}
+
+export type SampleData = Record<Metric, number | null>;
+
+// partial because the configs page filter which metrics to query
+export type Sample = { timestamp: string } & Partial<SampleData>;
