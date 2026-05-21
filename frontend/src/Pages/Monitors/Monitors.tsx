@@ -343,7 +343,9 @@ function SignalChart({
 			aria-label={METRICS_LABELS[metric]}
 			onClick={onClick}
 		>
-			<h3 className={cx("signalChartTitle")}>{METRICS_LABELS[metric]}</h3>
+			<h3 className={cx("signalChartTitle")}>
+				{METRICS_LABELS[metric]} ({unit.trim()})
+			</h3>
 			<div className={cx("chartWrap")}>
 				<ResponsiveContainer width="100%" height={height}>
 					<LineChart
@@ -383,8 +385,7 @@ function SignalChart({
 						<Tooltip
 							labelFormatter={(ms) => new Date(Number(ms)).toLocaleString()}
 							formatter={(value) => [
-								value != null ? `${value}${unit}` : "—",
-								METRICS_LABELS[metric],
+								`${METRICS_LABELS[metric]}: ${value != null ? `${value}${unit}` : "-"}`,
 							]}
 							contentStyle={{
 								background: "var(--color-surface)",
