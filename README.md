@@ -1,11 +1,31 @@
-# Cloud-OBD2
-Cloud-OBD2 is a web application that collects and stores OBD2 data from vehicles
-with data persistence beyond the current session,
-allowing users to obtain diagnostic data (i.e. metrics and errors) from
+# Iron-OBD2
+Iron-OBD2 is a web application that collects and 
+stores OBD2 data from vehicles with data persistence 
+beyond the current session, allowing users to obtain 
+diagnostic data (i.e. metrics and errors) from
 past data collection.
+
+Currently, OBD-II dashboards lack support for 
+automatic storage of past collections and only 
+displays the live vehicle metrics and errors.
+Other systems like Tesla's Diagnostic Software
+is locked behind a paywall and may only
+profitable if used for a business, while 
+the pricing can be a burden for individuals. 
+
+Iron-OBD2 fills this gap, and due to its
+open-source nature, available for everybody
+with no fees attached.
+
+## Features
+* Storage of past drive cycle metrics
+* Time-domain graphs
+* See data from multiple vehicles
+* Show errors associated with metrics and vice versa 
 
 ## Requirements
 To run the application, the following are required:
+* a UNIX-like machine (Linux, MacOS)
 * Python
 * Node.js (and `npm`)
 * PostgreSQL
