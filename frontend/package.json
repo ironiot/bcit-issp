@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sbom": "npm sbom --sbom-format cyclonedx --package-lock-only > sbom.cyclonedx.json",
+    "sbom:prod": "npm sbom --sbom-format cyclonedx --package-lock-only --omit dev > sbom-production.cyclonedx.json",
+    "sbom:spdx": "npm sbom --sbom-format spdx --package-lock-only > sbom.spdx.json"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
